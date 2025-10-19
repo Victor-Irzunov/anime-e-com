@@ -1,0 +1,35 @@
+@import "tailwindcss";
+ @plugin "daisyui" {
+   themes: light --default;
+ };
+
+
+:root {
+  --background: #ffffff;
+  --foreground: #040200;
+   --color-primary: #0F1115;
+  --color-secondary: #0FB37D;
+}
+
+@theme {
+  --breakpoint-xz: 20rem;      /* 320px - iPhone SE */
+  --breakpoint-xy: 23.5rem;    /* 376px - iPhone 6/7/8 */
+  --breakpoint-xx: 25.9375rem; /* 415px - iPhone X/11 Pro */
+  --breakpoint-xs: 30rem;      /* 480px */
+  --breakpoint-xm: 35.9375rem; /* 575px */
+  --breakpoint-ss: 38.75rem;   /* 620px */
+  --breakpoint-sm: 48rem;      /* 768px */
+  --breakpoint-sd: 61.9375rem; /* 991px */
+  --breakpoint-md: 66.25rem;   /* 1060px */
+  --breakpoint-lg: 75rem;      /* 1200px */
+  --breakpoint-xl: 106.25rem;  /* 1700px */
+  --breakpoint-2xl: 100rem;    /* 1600px */
+  --breakpoint-3xl: 120rem;    /* 1920px */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
