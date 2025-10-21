@@ -1,211 +1,189 @@
-import { PrismaClient } from '@prisma/client';
-import { NextResponse } from 'next/server';
-import multer from 'multer';
-import fs from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+// /app/api/product/route.js
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
-const prisma = new PrismaClient();
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.resolve(process.cwd(), 'public/uploads'));
-  },
-  filename: (req, file, cb) => {
-    cb(null, uuidv4() + '.webp');
-  },
-});
-
-const upload = multer({ storage });
-
-export async function POST(req) {
+/* helpers */
+function toBool(v) {
+  if (typeof v === "boolean") return v;
+  if (v == null) return false;
+  const s = String(v).toLowerCase();
+  return s === "true" || s === "1" || s === "on";
+}
+function toNum(v, d = 0) {
+  if (v == null || v === "") return d;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+}
+function toNullableInt(v) {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function parseJsonSafe(str, def = []) {
+  if (!str) return def;
   try {
-    const error = await new Promise((resolve, reject) => {
-      upload.any()(req, {}, (err) => {
-        if (err) {
-          console.error('Ошибка при загрузке файла:', err);
-          reject(err);
-        }
-        resolve();
-      });
-    });
-
-    if (error) {
-      return new NextResponse("Ошибка при загрузке файла", { status: 500 });
-    }
-
-    try {
-      const formData = await req.formData();
-      const title = formData.get('title');
-      const description = formData.get('description');
-      const price = parseFloat(formData.get('price'));
-      const discountPercentage = parseFloat(formData.get('discountPercentage') || 0);
-      const stock = parseInt(formData.get('stock'));
-      const category = formData.get('category');
-      const subcategory = formData.get('subcategory');
-      const brand = formData.get('brand');
-      const info = formData.get('info');
-      const content = formData.get('content');
-      const titleLink = formData.get('titleLink');
-      const rating = parseFloat(formData.get('rating'));
-
-      const banner = formData.get('banner') === 'true';
-      const discounts = formData.get('discounts') === 'true';
-      const povsednevnaya = formData.get('povsednevnaya') === 'true';
-      const recommended = formData.get('recommended') === 'true';
-
-      const imgFiles = formData.getAll('images');
-
-      const imageFile = formData.get('thumbnail');
-
-      const fileName = [];
-      const fileName2 = [];
-
-      if (imageFile) {
-        const name = uuidv4() + '.webp';
-        fileName2.push({ image: name });
-        const filePath = path.resolve(process.cwd(), 'public/uploads', name);
-        const data = await imageFile.arrayBuffer();
-        await fs.promises.writeFile(filePath, Buffer.from(data));
-      }
-
-      for (const imgFile of imgFiles) {
-        const name = uuidv4() + '.webp';
-        fileName.push({ image: name });
-        const filePath = path.resolve(process.cwd(), 'public/uploads', name);
-        const data = await imgFile.arrayBuffer();
-        await fs.promises.writeFile(filePath, Buffer.from(data));
-      }
-
-
-
-      const data = await prisma.product.create({
-        data: {
-          title,
-          description,
-          price,
-          discountPercentage,
-          stock,
-          category,
-          subcategory,
-          brand,
-          info,
-          rating,
-          titleLink,
-          banner,
-          discounts,
-          povsednevnaya,
-          recommended,
-          thumbnail: JSON.stringify(fileName2),
-          content,
-          images: JSON.stringify(fileName),
-        },
-      });
-
-      if (data) {
-        return NextResponse.json({ message: 'Продукт добавлен' });
-      }
-    } catch (error) {
-      console.error("🚀 POST Ошибка:", error);
-      return new NextResponse("Ошибка при добавлении товара", { status: 500 });
-    }
-  } catch (error) {
-    console.error('Ошибка при добавлении продукта:', error);
-    return new NextResponse("Ошибка при добавлении товара", { status: 500 });
+    if (typeof str === "string") return JSON.parse(str);
+    return str;
+  } catch {
+    return def;
   }
 }
+function safeStr(v, max = 255) {
+  if (v == null) return "";
+  const s = String(v);
+  return s.length > max ? s.slice(0, max) : s;
+}
 
+/* === GET: список с поддержкой фильтра по slug'ам === */
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const subcategory = searchParams.get('subcategory')
+    const catSlug = searchParams.get("category");    // figurki
+    const subSlug = searchParams.get("subcategory"); // statichnie-igrushki
 
-    if (!subcategory) {
-      throw new Error('Не указана категория продукта');
+    const AND = [];
+
+    if (catSlug) {
+      const cat = await prisma.category.findFirst({
+        where: { value: String(catSlug) },
+        select: { id: true, name: true },
+      });
+      AND.push({
+        OR: [
+          { categoryRel: { is: { value: String(catSlug) } } },
+          cat ? { categoryId: cat.id } : undefined,
+          cat ? { category: cat.name } : { category: String(catSlug) },
+        ].filter(Boolean),
+      });
     }
 
-    const products = await prisma.product.findMany({
-      where: {
-        subcategory: subcategory.toString(), // преобразуем категорию к строке
+    if (subSlug) {
+      const sub = await prisma.subCategory.findFirst({
+        where: { value: String(subSlug) },
+        select: { id: true, name: true },
+      });
+      AND.push({
+        OR: [
+          { subCategoryRel: { is: { value: String(subSlug) } } },
+          sub ? { subCategoryId: sub.id } : undefined,
+          sub ? { subcategory: sub.name } : { subcategory: String(subSlug) },
+        ].filter(Boolean),
+      });
+    }
+
+    const where = AND.length ? { AND } : undefined;
+
+    const rows = await prisma.product.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        categoryRel: { select: { value: true } },
+        subCategoryRel: { select: { value: true } },
+        brandRel: { select: { value: true } },
       },
     });
 
-    if (!products || products.length === 0) {
-      return new NextResponse("Продукты не найдены", { status: 404 });
-    }
+    const items = rows.map((p) => ({
+      ...p,
+      categoryValue: p.categoryRel?.value ?? null,
+      subcategoryValue: p.subCategoryRel?.value ?? null,
+      brandValue: p.brandRel?.value ?? null,
+    }));
 
-    return new NextResponse(JSON.stringify(products), { status: 200 });
-  } catch (error) {
-    console.error('Ошибка при получении продукта:', error);
-    return new NextResponse("Ошибка при получении товара", { status: 500 });
+    return NextResponse.json({ ok: true, items });
+  } catch (e) {
+    console.error("GET /api/product error:", e);
+    return NextResponse.json({ ok: false, message: "Ошибка получения товаров" }, { status: 500 });
   }
 }
 
-export async function DELETE(req) {
+/* === POST: создание товара (URL-вариант изображений) === */
+export async function POST(req) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
+    const form = await req.formData();
 
-    if (!id) {
-      return new NextResponse("Не указан ID продукта", { status: 400 });
+    // основные поля
+    const title = safeStr(form.get("title"), 255);
+    const description = String(form.get("description") || "");
+    const price = toNum(form.get("price"), 0);
+    const discountPercentage = toNum(form.get("discountPercentage"), 0);
+    const stock = toNum(form.get("stock"), 0);
+    const content = String(form.get("content") || "");
+    const titleLink = safeStr(form.get("titleLink") || "", 255);
+    const rating = toNum(form.get("rating"), 0);
+
+    // НОВОЕ — артикль (SKU)
+    const article = safeStr(form.get("article") || "", 64);
+
+    // флаги
+    const banner = toBool(form.get("banner"));
+    const discounts = toBool(form.get("discounts"));
+    const povsednevnaya = toBool(form.get("povsednevnaya"));
+    const recommended = toBool(form.get("recommended"));
+
+    // связи (id)
+    const categoryId = toNullableInt(form.get("categoryId"));
+    const subCategoryId = toNullableInt(form.get("subCategoryId"));
+    const brandId = toNullableInt(form.get("brandId"));
+
+    // строковые дубли (обратная совместимость)
+    const category = safeStr(form.get("category") || "", 255);
+    const subcategory = safeStr(form.get("subcategory") || "", 255);
+    const brand = safeStr(form.get("brand") || "", 255);
+
+    // info (JSON)
+    const info = parseJsonSafe(form.get("info"), []);
+
+    // изображения через URL
+    const thumbnailUrl = safeStr(form.get("thumbnailUrl") || "", 1024);
+    const imagesJson = parseJsonSafe(form.get("imagesJson"), []);
+    const images = (Array.isArray(imagesJson) ? imagesJson : [])
+      .map((it, idx) => ({
+        url: safeStr(it?.url || "", 1024),
+        sort: Number.isFinite(it?.sort) ? it.sort : idx,
+      }))
+      .filter((x) => x.url);
+
+    if (!title) {
+      return NextResponse.json({ ok: false, message: "Не передан title" }, { status: 400 });
+    }
+    if (!thumbnailUrl || images.length === 0) {
+      return NextResponse.json({ ok: false, message: "Не переданы изображения" }, { status: 400 });
     }
 
-    // Получаем информацию о продукте для получения имён файлов изображений
-    const product = await prisma.product.findUnique({
-      where: {
-        id: +id
+    const created = await prisma.product.create({
+      data: {
+        title,
+        description,
+        price,
+        discountPercentage,
+        stock,
+        category,
+        subcategory,
+        brand,
+        rating,
+        titleLink,
+        content,
+        banner,
+        discounts,
+        povsednevnaya,
+        recommended,
+        // НОВОЕ
+        article,
+        // изображения
+        thumbnail: thumbnailUrl, // одна строка
+        images,                  // JSON-массив [{url, sort}]
+        // связи
+        categoryId,
+        subCategoryId,
+        brandId,
+        info,
       },
-      select: {
-        thumbnail: true,
-        images: true
-      }
     });
 
-    // Удаляем файлы изображений
-    if (product.thumbnail) {
-      const thumbnailName = JSON.parse(product.thumbnail)[0].image;
-      const thumbnailPath = path.resolve(process.cwd(), 'public/uploads', thumbnailName);
-      await fs.promises.unlink(thumbnailPath);
-    }
-    if (product.images) {
-      const imageNames = JSON.parse(product.images).map(img => img.image);
-      for (const imageName of imageNames) {
-        const imagePath = path.resolve(process.cwd(), 'public/uploads', imageName);
-        await fs.promises.unlink(imagePath);
-      }
-    }
-
-    // Удаляем продукт из базы данных
-    await prisma.product.delete({
-      where: {
-        id: +id
-      },
-    });
-
-    return new NextResponse("Продукт удалён!", { status: 200 });
-  } catch (error) {
-    console.error('Ошибка при удалении продукта по id:', error);
-    return new NextResponse("Ошибка при удалении товара по id", { status: 500 });
+    return NextResponse.json({ ok: true, item: created }, { status: 201 });
+  } catch (e) {
+    console.error("POST /api/product error:", e);
+    return NextResponse.json({ ok: false, message: "Ошибка при добавлении товара" }, { status: 500 });
   }
 }
-
-// export async function DELETE(req) {
-//   try {
-//     const { searchParams } = new URL(req.url);
-//     const id = searchParams.get('id');
-
-//     if (!id) {
-//       return new NextResponse("Не указан ID продукта", { status: 400 });
-//     }
-//     await prisma.product.delete({
-//       where: {
-//         id: +id
-//       },
-//     });
-
-//     return new NextResponse("Продукт удалён!", { status: 200 });
-//   } catch (error) {
-//     console.error('Ошибка при удалении продукта по id:', error);
-//     return new NextResponse("Ошибка при удалении товара по id", { status: 500 });
-//   }
-// }

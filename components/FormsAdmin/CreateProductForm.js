@@ -1,292 +1,267 @@
-"use client"
-import React, { useState } from 'react';
-import { Button, InputNumber, Form, Input, Radio, message, Upload, Checkbox } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import { createProduct } from '@/http/adminAPI';
-import { transliterate } from '@/transliterate/transliterate';
+// /components/FormsAdmin/CreateProductForm.jsx
+"use client";
+import React, { useEffect, useMemo, useState } from "react";
+import { Button, InputNumber, Form, Input, message, Checkbox, Select } from "antd";
+import { createProduct } from "@/http/adminAPI";
+import { transliterate } from "@/transliterate/transliterate";
+import SortableUpload from "@/components/admin/SortableUpload.client";
+import CKeditor from "@/components/Editor/CKeditor";
+
 const { TextArea } = Input;
 
-const brandData = ["Apple", "Samsung", "LG"];
-const dataCategory = [
-  {
-    id: 1,
-    category: { name: 'Мобильные телефоны', value: 'mobilnye-telefony' },
-    subCategories: [{ name: 'Телефоны', value: 'telefony' }],
-  },
-  {
-    id: 2,
-    category: { name: 'Компьютеры', value: 'kompyutery' },
-    subCategories: [{ name: 'Ноутбуки', value: 'noutbuki' }, { name: 'MacBook', value: 'macbook' }],
-  },
-];
+async function uploadGalleryIfNeeded(gallery) {
+  const newFiles = gallery.filter((g) => g.file instanceof File);
+  if (newFiles.length === 0) {
+    return gallery.map((g) => g.url).filter(Boolean);
+  }
+
+  const form = new FormData();
+  form.append("subdir", "products");
+  newFiles.forEach((it) => form.append("originals", it.file));
+  newFiles.forEach((it) => form.append("thumbs", it.file));
+
+  const resp = await fetch("/api/uploads/multi", { method: "POST", body: form });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data?.ok) throw new Error(data?.message || "Не удалось загрузить изображения");
+
+  const uploaded = Array.isArray(data.files) ? data.files : [];
+  const result = [];
+  let take = 0;
+  for (const it of gallery) {
+    if (it.file instanceof File) {
+      const u = uploaded[take++];
+      result.push(u?.originalUrl || u?.thumbUrl || "");
+    } else {
+      result.push(it.url || "");
+    }
+  }
+  return result.filter(Boolean);
+}
 
 const CreateProductForm = () => {
   const [form] = Form.useForm();
-  const [thumbnailList, setThumbnailList] = useState([]);
-  const [imageList, setImageList] = useState([]);
-  const [subCategoryOptions, setSubCategoryOptions] = useState([]);
-  const [infoArray, setInfoArray] = useState([]);
+  const [cats, setCats] = useState([]);
+  const [subs, setSubs] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [categoryId, setCategoryId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [gallery, setGallery] = useState([]); // [{ uid, url? , file?, preview? }]
+
+  const loadCats = async () => {
+    const r = await fetch("/api/admin/categories", { cache: "no-store" });
+    const j = await r.json();
+    if (j?.ok) setCats(j.items || []);
+  };
+  const loadSubs = async (catId) => {
+    if (!catId) { setSubs([]); return; }
+    const r = await fetch(`/api/admin/subcategories?categoryId=${catId}`, { cache: "no-store" });
+    const j = await r.json();
+    if (j?.ok) setSubs(j.items || []);
+  };
+  const loadBrands = async () => {
+    const r = await fetch("/api/admin/brands", { cache: "no-store" });
+    const j = await r.json();
+    if (j?.ok) setBrands(j.items || []);
+  };
+
+  useEffect(() => { loadCats(); loadBrands(); }, []);
+  useEffect(() => { loadSubs(categoryId); }, [categoryId]);
+
+  const catOptions = useMemo(() => cats.map((c) => ({ label: c.name, value: c.id })), [cats]);
+  const subOptions = useMemo(() => subs.map((s) => ({ label: s.name, value: s.id })), [subs]);
+  const brandOptions = useMemo(() => brands.map((b) => ({ label: b.name, value: b.id })), [brands]);
 
   const onFinish = async (values) => {
-    console.log('Success:', values);
+    try {
+      setSaving(true);
 
-    let titleLink = transliterate(values.title).replace(/\s+/g, '-').toLowerCase()
+      const urls = await uploadGalleryIfNeeded(gallery);
+      if (urls.length === 0) {
+        message.error("Загрузите хотя бы одно изображение.");
+        setSaving(false);
+        return;
+      }
 
-    const formData = new FormData();
-    formData.append('title', values.title);
-    formData.append('description', values.description);
-    formData.append('price', values.price);
-    formData.append('discountPercentage', values.discountPercentage || 0);
-    formData.append('stock', values.stock);
-    formData.append('category', values.category);
-    formData.append('subcategory', values.subcategory);
-    formData.append('brand', values.brand);
-    formData.append('content', values.content);
-    formData.append('rating', values.rating);
-    formData.append('titleLink', titleLink);
+      const cat = cats.find((c) => c.id === values.categoryId);
+      const sub = subs.find((s) => s.id === values.subCategoryId);
+      const brand = brands.find((b) => b.id === values.brandId);
 
-    formData.append('banner', values.banner);
-    formData.append('discounts', values.discounts);
-    formData.append('povsednevnaya', values.povsednevnaya);
-    formData.append('recommended', values.recommended);
-   
+      const titleLink = transliterate(values.title).replace(/\s+/g, "-").toLowerCase();
+      const imagesArr = urls.map((url, idx) => ({ url, sort: idx }));
+      const thumbnailUrl = imagesArr[0]?.url || "";
 
-    // const infoArray = values.info ? values.info.split('/').map(item => item.trim()).filter(Boolean) : [];
-    // formData.append('info', JSON.stringify(infoArray));
+      const infoArray = values.info
+        ? values.info.split("\n").map((item) => {
+            const [property, ...valueParts] = item.trim().split(":");
+            const value = valueParts.join(":").trim();
+            if (!property) return null;
+            return { property, value };
+          }).filter(Boolean)
+        : [];
 
-    const infoArray = values.info ? values.info.split('\n').map(item => {
-      const [property, ...valueParts] = item.trim().split(':');
-      const value = valueParts.join(':').trim(); // Объединяем оставшуюся часть как значение
-      return { property, value };
-    }).filter(Boolean) : [];
-    formData.append('info', JSON.stringify(infoArray));
+      const fd = new FormData();
+      fd.append("title", values.title);
+      fd.append("description", values.description);
+      fd.append("price", values.price);
+      fd.append("discountPercentage", values.discountPercentage || 0);
+      fd.append("stock", values.stock);
 
+      // NEW: артикль
+      fd.append("article", values.article || "");
 
-    // Добавление главного изображения в FormData
-    if (thumbnailList.length > 0) {
-      formData.append('thumbnail', thumbnailList[0].originFileObj);
-    }
+      // дубли строками
+      fd.append("category", cat?.name || "");
+      fd.append("subcategory", sub?.name || "");
+      fd.append("brand", brand?.name || "");
 
-    // Добавление дополнительных изображений в FormData
-    imageList.forEach((file) => {
-      formData.append('images', file.originFileObj);
-    });
+      // связи id
+      fd.append("categoryId", values.categoryId ?? "");
+      fd.append("subCategoryId", values.subCategoryId ?? "");
+      fd.append("brandId", values.brandId ?? "");
 
-    createProduct(formData)
-      .then((data) => {
-        console.log('Product created:', data);
-        message.success('Продукт успешно создан');
+      // контент
+      fd.append("content", values.content);
+      fd.append("rating", values.rating || 0);
+      fd.append("titleLink", titleLink);
+
+      // флаги
+      fd.append("banner", values.banner || false);
+      fd.append("discounts", values.discounts || false);
+      fd.append("povsednevnaya", values.povsednevnaya || false);
+      fd.append("recommended", values.recommended || false);
+
+      // медиа/инфо
+      fd.append("info", JSON.stringify(infoArray));
+      fd.append("thumbnailUrl", thumbnailUrl);
+      fd.append("imagesJson", JSON.stringify(imagesArr));
+
+      const data = await createProduct(fd);
+      if (data) {
+        message.success("Продукт успешно создан");
         form.resetFields();
-        setThumbnailList([]);
-        setImageList([]);
-      })
-      .catch((error) => {
-        console.error('Error creating product:', error);
-        message.error('Ошибка при создании продукта');
-      });
-  };
-
-  // Функция для обновления списка подкатегорий при выборе категории
-  const handleCategoryChange = (category) => {
-    const categoryData = dataCategory.find((cat) => cat.category.value === category);
-    if (categoryData) {
-      setSubCategoryOptions(categoryData.subCategories);
-      // Если подкатегория не является обязательным полем, устанавливаем значение undefined
-      form.setFieldsValue({ subcategory: undefined });
-    }
-  };
-
-
-  // Функция для обработки нажатия клавиши Enter в поле ввода информации
-  const handleInfoPressEnter = (e) => {
-    const value = e.target.value.trim();
-    if (value) {
-      // Разделяем введенный текст по разделителю "/" и добавляем в массив infoArray
-      const newInfo = value.split('/').map((item) => item.trim());
-      setInfoArray([...infoArray, ...newInfo]);
-      // Очищаем поле ввода
-      e.target.value = '';
+        setCategoryId(null);
+        setSubs([]);
+        setGallery([]);
+      }
+    } catch (e) {
+      console.error(e);
+      message.error("Ошибка при создании продукта");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <>
-      <Form
-        form={form}
-        name="createProduct"
-        onFinish={onFinish}
-        labelCol={{ span: 5 }}
-        wrapperCol={{ span: 16 }}
+    <Form
+      form={form}
+      name="createProduct"
+      onFinish={onFinish}
+      labelCol={{ span: 5 }}
+      wrapperCol={{ span: 16 }}
+    >
+      <Form.Item label="Название" name="title" rules={[{ required: true, message: "Введите название продукта" }]}>
+        <Input />
+      </Form.Item>
+
+      <Form.Item label="Описание" name="description" rules={[{ required: true, message: "Введите описание продукта" }]}>
+        <TextArea autoSize={{ minRows: 3 }} />
+      </Form.Item>
+
+      <Form.Item label="Цена" name="price" rules={[{ required: true, message: "Введите цену продукта" }]}>
+        <InputNumber min={0} step={0.01} />
+      </Form.Item>
+
+      <Form.Item label="Скидка" name="discountPercentage">
+        <InputNumber min={0} max={100} />
+      </Form.Item>
+
+      <Form.Item label="Наличие" name="stock" rules={[{ required: true, message: "Введите количество товара" }]}>
+        <InputNumber min={0} />
+      </Form.Item>
+
+      {/* NEW: Артикль */}
+      <Form.Item label="Артикль (SKU)" name="article">
+        <Input placeholder="Например: AKN-00123" />
+      </Form.Item>
+
+      <Form.Item label="Категория" name="categoryId" rules={[{ required: true, message: "Выберите категорию" }]}>
+        <Select
+          options={catOptions}
+          placeholder="Выберите категорию"
+          onChange={(val) => {
+            setCategoryId(val);
+            form.setFieldsValue({ subCategoryId: undefined });
+          }}
+          showSearch
+          optionFilterProp="label"
+        />
+      </Form.Item>
+
+      <Form.Item label="Подкатегория" name="subCategoryId" rules={[{ required: true, message: "Выберите подкатегорию" }]}>
+        <Select
+          options={subOptions}
+          placeholder="Выберите подкатегорию"
+          showSearch
+          optionFilterProp="label"
+          disabled={!categoryId}
+        />
+      </Form.Item>
+
+      <Form.Item label="Бренд" name="brandId">
+        <Select
+          options={brandOptions}
+          placeholder="Выберите бренд (аниме)"
+          allowClear
+          showSearch
+          optionFilterProp="label"
+        />
+      </Form.Item>
+
+      <Form.Item label="Рейтинг" name="rating">
+        <InputNumber min={0} max={5} step={0.1} />
+      </Form.Item>
+
+      <div className="py-12 sd:px-28 xz:px-1.5">
+        <p className="font-medium mb-2">Галерея (перетаскивание, первое — главное)</p>
+        <SortableUpload value={gallery} onChange={setGallery} label="Загрузить изображения" />
+      </div>
+
+      <Form.Item
+        label="Контент для товара"
+        name="content"
+        rules={[{ required: true, message: "Введите контент продукта" }]}
+        valuePropName="value"
+        getValueFromEvent={(val) => val}
       >
-        {/*1 Название продукта */}
-        <Form.Item
-          label="Название"
-          name="title"
-          rules={[{ required: true, message: 'Введите название продукта' }]}
-        >
-          <Input />
-        </Form.Item>
+        <CKeditor placeholder="Введите SEO-текст карточки товара…" />
+      </Form.Item>
 
-        {/*2 Описание продукта */}
-        <Form.Item
-          label="Описание"
-          name="description"
-          rules={[{ required: true, message: 'Введите описание продукта' }]}
-        >
-          <TextArea autoSize={{ minRows: 3 }} />
-        </Form.Item>
+      <Form.Item label="Информация" name="info">
+        <TextArea autoSize={{ minRows: 3 }} placeholder={"Характеристика: значение\nМатериал: ПВХ\nВысота: 18 см"} />
+      </Form.Item>
 
-        {/*3 Цена продукта */}
-        <Form.Item
-          label="Цена"
-          name="price"
-          rules={[{ required: true, message: 'Введите цену продукта' }]}
-        >
-          <InputNumber min={0} step={0.01} />
-        </Form.Item>
+      <Form.Item label="Баннер на главной" name="banner" valuePropName="checked">
+        <Checkbox>Добавить товар на главную</Checkbox>
+      </Form.Item>
 
-        {/*4 Процент скидки */}
-        <Form.Item label="Скидка" name="discountPercentage">
-          <InputNumber min={0} max={100} />
-        </Form.Item>
+      <Form.Item label="Акции и скидки" name="discounts" valuePropName="checked">
+        <Checkbox>Добавить товар на главную</Checkbox>
+      </Form.Item>
 
-        {/*5 Количество товара в наличии */}
-        <Form.Item
-          label="Наличие"
-          name="stock"
-          rules={[{ required: true, message: 'Введите количество товара' }]}
-        >
-          <InputNumber min={0} />
-        </Form.Item>
+      <Form.Item label="Повседневные" name="povsednevnaya" valuePropName="checked">
+        <Checkbox>Добавить товар на главную</Checkbox>
+      </Form.Item>
 
-        {/*6 Категория */}
-        <Form.Item label="Категория" name="category" rules={[{ required: true }]}>
-          <Radio.Group onChange={(e) => handleCategoryChange(e.target.value)}>
-            {dataCategory.map((el) => (
-              <Radio.Button key={el.id} value={el.category.value}>
-                {el.category.name}
-              </Radio.Button>
-            ))}
-          </Radio.Group>
-        </Form.Item>
+      <Form.Item label="Рекомендуемые" name="recommended" valuePropName="checked">
+        <Checkbox>Добавить товар в рекомендуемые</Checkbox>
+      </Form.Item>
 
-        {/*7 Подкатегория */}
-        <Form.Item label="Подкатегория" name="subcategory" rules={[{ required: true }]}>
-          <Radio.Group>
-            {subCategoryOptions.map((subCategory) => (
-              <Radio.Button key={subCategory.value} value={subCategory.value}>
-                {subCategory.name}
-              </Radio.Button>
-            ))}
-          </Radio.Group>
-        </Form.Item>
-
-
-        {/*8 Бренд */}
-        <Form.Item label="Бренд" name="brand" rules={[{ required: true }]}>
-          <Radio.Group>
-            {
-              brandData.map(el => (
-                <Radio.Button key={el} value={el}>{el}</Radio.Button>
-              ))
-            }
-          </Radio.Group>
-        </Form.Item>
-
-        {/*9 Рейтинг */}
-        <Form.Item label="Рейтинг" name="rating">
-          <InputNumber min={0} max={5} step={0.1} />
-        </Form.Item>
-
-        {/*10 Главное изображение */}
-        <Form.Item label="Главное изображение" name="thumbnail" rules={[{ required: true }]}>
-          <Upload
-            accept="image/*"
-            fileList={thumbnailList}
-            beforeUpload={() => false}
-            onChange={({ fileList }) => setThumbnailList(fileList.slice(-1))}
-          >
-            <Button icon={<UploadOutlined />}>Загрузить изображение</Button>
-          </Upload>
-        </Form.Item>
-
-        {/*11 Изображения */}
-        <Form.Item label="Дополнительные изображения" name="images" rules={[{ required: true }]}>
-          <Upload
-            accept="image/*"
-            multiple
-            fileList={imageList}
-            beforeUpload={() => false}
-            onChange={({ fileList }) => setImageList(fileList)}
-          >
-            <Button icon={<UploadOutlined />}>Загрузить изображения</Button>
-          </Upload>
-        </Form.Item>
-
-        {/*12 Контент */}
-        <Form.Item
-          label="Контент для товара"
-          name="content"
-          rules={[{ required: true, message: 'Введите контент продукта' }]}
-        >
-          <TextArea autoSize={{ minRows: 3 }} />
-        </Form.Item>
-
-        {/*13 Информация */}
-        <Form.Item
-          label="Информация"
-          name="info"
-        >
-          <TextArea
-            autoSize={{ minRows: 3 }}
-            onPressEnter={handleInfoPressEnter} // Обработчик нажатия клавиши Enter
-          />
-        </Form.Item>
-
-         {/*14 Баннер */}
-         <Form.Item
-          label="Баннер на главной странице"
-          name="banner"
-          valuePropName="checked"
-        >
-          <Checkbox>Добавить товар на главную</Checkbox>
-        </Form.Item>
-
-         {/*15 Акции и скидки */}
-         <Form.Item
-          label="Акции и скидки на главной"
-          name="discounts"
-          valuePropName="checked"
-        >
-          <Checkbox>Добавить товар на главную</Checkbox>
-        </Form.Item>
-
-         {/*16 Повседневные товары */}
-         <Form.Item
-          label="Повседневные товары на главной"
-          name="povsednevnaya"
-          valuePropName="checked"
-        >
-          <Checkbox>Добавить товар на главную</Checkbox>
-        </Form.Item>
-
-         {/*16 Рекомендуемые */}
-         <Form.Item
-          label="Рекомендуемые товары"
-          name="recommended"
-          valuePropName="checked"
-        >
-          <Checkbox>Добавить товар в рекомендуемые</Checkbox>
-        </Form.Item>
-
-        {/* Кнопка "Сохранить" */}
-        <Form.Item wrapperCol={{ offset: 5, span: 16 }}>
-          <Button type="primary" className='text-black bg-white' htmlType="submit">
-            Сохранить
-          </Button>
-        </Form.Item>
-      </Form>
-    </>
+      <Form.Item wrapperCol={{ offset: 5, span: 16 }}>
+        <Button type="primary" className="text-black bg-white" htmlType="submit" loading={saving}>
+          {saving ? "Сохранение…" : "Сохранить"}
+        </Button>
+      </Form.Item>
+    </Form>
   );
 };
 

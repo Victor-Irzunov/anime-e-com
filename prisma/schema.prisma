@@ -1,67 +1,145 @@
-// file: schema.prisma
-
+// /prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = "mysql://root:Qaz123-321@localhost:3306/e-com"
+  provider     = "mysql"
+  url          = "mysql://root:Qaz123-321@localhost:3306/e-com"
   relationMode = "prisma"
 }
 
 model User {
-  id          Int       @id @default(autoincrement())
-  email       String    @unique
-  password    String
-  isAdmin     Boolean
-  userData    UserData? // Связь с данными пользователя
-  orders      OrderData[] // Связь с заказами
-  createdAt   DateTime  @default(now()) // Дата создания
+  id        Int         @id @default(autoincrement())
+  email     String      @unique
+  password  String
+  isAdmin   Boolean
+  userData  UserData?
+  orders    OrderData[]
+  createdAt DateTime    @default(now())
 }
 
 model UserData {
-  id          Int       @id @default(autoincrement())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      Int       @unique
-  orderId     Int
-  name        String
-  surname     String
-  address     String
-  phone       String
-  createdAt   DateTime  @default(now()) // Дата создания
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @unique
+  orderId   Int
+  name      String
+  surname   String
+  address   String
+  phone     String
+  createdAt DateTime @default(now())
 }
 
 model OrderData {
-  id          Int       @id @default(autoincrement())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      Int
-  orderItems  Json
-  address     String
-  phone       String
-  message     String
-  createdAt   DateTime  @default(now()) // Дата создания
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  orderItems Json
+  address    String
+  phone      String
+  message    String
+  createdAt  DateTime @default(now())
+}
+
+model Category {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  value         String         @unique
+
+  // SEO
+  h1            String?        @db.VarChar(255)
+  contentHtml   String?        @db.Text
+
+  // Картинка категории (webp в /public/uploads)
+  image         String?        @db.VarChar(255)
+
+  subcategories SubCategory[]
+  products      Product[]
+
+  createdAt     DateTime       @default(now())
+}
+
+model SubCategory {
+  id           Int        @id @default(autoincrement())
+  name         String
+  value        String
+
+  // SEO
+  h1           String?    @db.VarChar(255)
+  contentHtml  String?    @db.Text
+
+  // Картинка подкатегории (webp в /public/uploads)
+  image        String?    @db.VarChar(255)
+
+  category     Category   @relation(fields: [categoryId], references: [id])
+  categoryId   Int
+
+  products     Product[]
+
+  createdAt    DateTime   @default(now())
+
+  @@unique([categoryId, value])
+  @@index([categoryId])
+}
+
+model Brand {
+  id        Int       @id @default(autoincrement())
+  name      String
+  value     String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
 }
 
 model Product {
-  id                  Int          @id @default(autoincrement())
-  title               String
-  description         String
-  price               Float
-  discountPercentage  Float
-  rating              Float
-  stock               Int
-  brand               String
-  thumbnail           String
-  images              Json
-  info                Json
-  content             String   @db.Text
-  category            String
-  subcategory         String
-  titleLink           String   @default("")
-  banner              Boolean
-  discounts           Boolean
-  povsednevnaya       Boolean
-  recommended         Boolean
-  createdAt           DateTime     @default(now())
+  id                 Int          @id @default(autoincrement())
+  title              String
+  description        String       @db.Text   // <-- БЫЛО String, СТАЛО TEXT (чинит P2000)
+  price              Float
+  discountPercentage Float
+  rating             Float
+  stock              Int
+
+  // Старые строковые поля (оставляем для обратной совместимости)
+  brand              String
+  category           String
+  subcategory        String
+
+  // Изображения/контент
+  thumbnail          String       // здесь храним ОДИН url превью (строка)
+  images             Json         // массив объектов [{url, sort}]
+  info               Json
+
+  article            String?      @db.VarChar(64)
+
+  // Контент карточки товара (CKEditor) — SEO-текст
+  content            String       @db.Text
+
+  // Доп. SEO для товара
+  metaTitle          String?      @db.VarChar(255)
+  metaDesc           String?      @db.VarChar(512)
+  h1                 String?      @db.VarChar(255)
+
+  // Ссылка для деталей товара
+  titleLink          String       @default("") @unique
+
+  // Флаги
+  banner             Boolean
+  discounts          Boolean
+  povsednevnaya      Boolean
+  recommended        Boolean
+
+  createdAt          DateTime     @default(now())
+
+  // Новые связи (опциональные)
+  categoryRel        Category?    @relation(fields: [categoryId], references: [id])
+  categoryId         Int?
+  subCategoryRel     SubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategoryId      Int?
+  brandRel           Brand?       @relation(fields: [brandId], references: [id])
+  brandId            Int?
+
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([brandId])
 }

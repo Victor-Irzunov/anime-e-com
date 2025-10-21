@@ -1,58 +1,47 @@
-import { dataCategory } from "@/lib/const/categoryData";
+// /app/[category]/[subcategory]/layout.js
+import prisma from "@/lib/prisma";
 
-export async function generateMetadata({ params: { subcategory } }) {
-	// Ищем подкатегорию среди всех категорий
-	let foundSubcategory = null;
+export async function generateMetadata({ params }) {
+  const { category, subcategory } = await params;
 
-	dataCategory.forEach(category => {
-		// Если категория имеет подкатегории
-		if (category.children && category.children.length > 0) {
-			// Ищем подкатегорию среди подкатегорий этой категории
-			const subcat = category.children.find(sub => sub.link.split('/').filter(Boolean)[1] === subcategory);
-			if (subcat) {
-				// Если нашли, сохраняем её и прерываем цикл
-				foundSubcategory = subcat;
-				return;
-			}
-		}
-	});
+  const sub = await prisma.subCategory.findFirst({
+    where: { value: subcategory, category: { value: category } },
+    include: { category: true },
+  });
 
-	// Если подкатегория не найдена, возвращаем значения по умолчанию
-	if (!foundSubcategory) {
-		return {
-			title: '',
-			description: '',
-			alternates: {
-				canonical: '',
-			},
-			keywords:''
-		};
-	}
+  if (!sub) {
+    return {
+      title: "",
+      description: "",
+      alternates: {
+        canonical: `${process.env.NEXT_PUBLIC_BASE_URL}/${category}/${subcategory}`,
+      },
+      keywords: "",
+    };
+  }
 
-	// Если подкатегория найдена, берем данные метатегов из неё
-	const { metatitle, description } = foundSubcategory;
+  const base = sub.h1 || sub.name;
+  const title = `Купить ${base} в Минске`;
+  const description = `${base} купить в Минске. Купить можно на сайте с доставкой и самовывозом. Адреса магазинов и телефоны указаны на сайте.`;
+  const keywords = `${sub.name.toLowerCase()}, купить, минск, беларусь`;
+  const alternates = {
+    canonical: `${process.env.NEXT_PUBLIC_BASE_URL}/${sub.category.value}/${sub.value}`,
+  };
 
-	// Формируем title и description
-	const title = `${metatitle}`;
-	const metaDescription = description;
-	const keywords = 'телефон, купить, смартфон, дешево, выбор телефонов'
-
-	const alternates = {
-		canonical: `http://localhost:3000/mobilnye-telefony/telefony`,
-	};
-
-	return {
-		title,
-		description: metaDescription,
-		alternates,
-		keywords
-	};
+  return {
+    title,
+    description,
+    alternates,
+    keywords,
+    openGraph: {
+      title,
+      description,
+      url: `${process.env.NEXT_PUBLIC_BASE_URL}/${sub.category.value}/${sub.value}`,
+      type: "website",
+    },
+  };
 }
 
 export default function Layout({ children }) {
-	return (
-		<>
-			{children}
-		</>
-	);
+  return <>{children}</>;
 }

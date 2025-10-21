@@ -1,0 +1,11 @@
+-- AlterTable
+ALTER TABLE `Category` ADD COLUMN `contentHtml` TEXT NULL,
+    ADD COLUMN `h1` VARCHAR(255) NULL,
+    ADD COLUMN `metaDesc` VARCHAR(512) NULL,
+    ADD COLUMN `metaTitle` VARCHAR(255) NULL;
+
+-- AlterTable
+ALTER TABLE `SubCategory` ADD COLUMN `contentHtml` TEXT NULL,
+    ADD COLUMN `h1` VARCHAR(255) NULL,
+    ADD COLUMN `metaDesc` VARCHAR(512) NULL,
+    ADD COLUMN `metaTitle` VARCHAR(255) NULL;

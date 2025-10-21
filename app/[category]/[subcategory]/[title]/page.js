@@ -1,77 +1,53 @@
-import Breadcrumbs from "@/components/Breadcrumbs"
-import ProductDetailsOverview from "@/components/ProductDetailsOverview"
-import RecommendedProducts from "@/components/RecommendedProduct"
-import { PrismaClient } from '@prisma/client';
+// /app/[category]/[subcategory]/[title]/page.jsx
+import prisma from "@/lib/prisma";
+import { redirect, notFound } from "next/navigation";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import ImgProductDetails from "@/components/ImgProductDetails";
+import ProductDetailsOverview from "@/components/ProductDetailsOverview";
 
-const prisma = new PrismaClient();
 
-async function getData(title) {
-    try {
-        const data = await prisma.product.findFirst({
-            where: {
-                titleLink: title
-            },
-        });
-        if (!data || data.length === 0) {
-            throw new Error(`Проблема с получением конкретного товара ProductDetails`);
-        }
-        return data
-    } catch (error) {
-        console.error("Ошибки при запросе конкретного товара ProductDetails:", error);
-        throw error;
-    }
+
+export async function generateMetadata({ params }) {
+  const { title } = await params;
+  const product = await prisma.product.findFirst({
+    where: { titleLink: title },
+    include: { categoryRel: true, subCategoryRel: true },
+  });
+  if (!product) return {};
+  const h1 = product.h1 || product.title;
+  return {
+    title: product.metaTitle || h1,
+    description: product.metaDesc || product.description.slice(0, 160),
+    alternates: {
+      canonical: `${process.env.NEXT_PUBLIC_BASE_URL}/${product.categoryRel?.value || ""}/${product.subCategoryRel?.value || ""}/${product.titleLink}`,
+    },
+  };
 }
 
-export async function generateMetadata({ params: subcategory }) {
+export default async function Page({ params }) {
+  const { category, subcategory, title } = await params;
 
-    const data = await getData(subcategory.title);
+  const product = await prisma.product.findFirst({
+    where: { titleLink: title },
+    include: { categoryRel: true, subCategoryRel: true, brandRel: true },
+  });
+  if (!product) notFound();
 
-    let title1
-    let description1
+  const catSlug = product.categoryRel?.value || category;
+  const subSlug = product.subCategoryRel?.value || subcategory;
 
-    if (data) {
-        title1 = `${data.title} купить в Минске: доставка по Беларуси`,
-            description1 = `${data.title} по доступной цене в интернет-магазине. ${data.title} купить в Минске с фото и описанием — доставка по Беларуси.`
-    }
-    return {
-        title: title1,
-        description: description1,
-        keywords: `${(data.title).toLowerCase()}, купить`,
-        alternates: {
-            canonical: `${process.env.NEXT_PUBLIC_BASE_URL}/${subcategory.category}/${subcategory.subcategory}/${subcategory.title}`,
-        },
-        og: {
-            title: title1,
-            description: description1,
-            type: 'website',
-            url: `${process.env.NEXT_PUBLIC_BASE_URL}/`,
-            image: '',
-        },
-    };
+  // Канонизация полного пути товара
+  if (category !== catSlug || subcategory !== subSlug) {
+    redirect(`/${encodeURIComponent(catSlug)}/${encodeURIComponent(subSlug)}/${encodeURIComponent(product.titleLink)}`);
+  }
+
+  return (
+    <main className="container mx-auto pt-2 pb-10">
+      <Breadcrumbs title={product.title} />
+      <div className="mt-6 grid sd:grid-cols-[1fr] xz:grid-cols-1 gap-6">
+        <ImgProductDetails product={product} />
+        <ProductDetailsOverview product={product} />
+      </div>
+    </main>
+  );
 }
-export default async function ProductDetails({ params: { title } }) {
-    const data = await getData(title);
-
-    return (
-
-        <div className='container mx-auto'>
-            <Breadcrumbs title={data ? data.title : []} />
-            <div className='mt-6 mb-8 pl-3'>
-                <h1 className='sd:text-4xl xz:text-xl'>
-                    {data?.title}
-                </h1>
-            </div>
-            {data ? (
-                <>
-                    <ProductDetailsOverview product={data} />
-                    <RecommendedProducts />
-                </>
-            ) : (
-                <div className="p-12 flex min-h-[22rem]">
-                    <span className="m-auto loading loading-ring loading-lg"></span>
-                </div>
-            )}
-        </div>
-    )
-}
-

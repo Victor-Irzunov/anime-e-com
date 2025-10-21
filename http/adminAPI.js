@@ -1,4 +1,5 @@
-import { $authHost,$host } from "./index"
+// http/adminAPI.js
+import { $authHost, $host } from "./index"
 
 export const createProduct = async (product) => {
 	const { data } = await $authHost.post('api/product', product)
@@ -6,19 +7,17 @@ export const createProduct = async (product) => {
 }
 
 
-export const getAllProductsOneSubCategory = async (subcategory) => {
-	try {
-	  const response = await $authHost.get('api/product', {
-		 params: {
-			subcategory
-		 },
-	  });
-	  return response.data;
-	} catch (error) {
-	  console.error('Ошибка при получении всех продуктов категории:', error);
-	  throw error;
-	}
- };
+export const getAllProductsOneSubCategory = async (subcategory, category) => {
+  try {
+    const { data } = await $host.get("api/product", {
+      params: { subcategory, category }, // category можно не передавать
+    });
+    return data?.items ?? [];
+  } catch (e) {
+    console.error("Ошибка при получении товаров подкатегории:", e);
+    return [];
+  }
+};
 
 
 export const updateOneProduct = async (id, product) => {

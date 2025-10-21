@@ -1,0 +1,9 @@
+.editor .ck.ck-editor__editable {
+  min-height: 220px;
+}
+.editor .ck.ck-toolbar {
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+.editor .ck.ck-content {
+  border-radius: 0 0 0.5rem 0.5rem;
+}

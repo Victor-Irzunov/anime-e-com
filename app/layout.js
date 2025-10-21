@@ -1,23 +1,40 @@
-import './globals.css'
-import Header from '@/components/header/Header'
-import CategoryMenu from '@/components/CategoryMenu'
-import Footer from '@/components/footer/Footer'
-import { MyContextProvider } from '@/contexts/MyContextProvider'
+// /app/layout.js
+import "./globals.css";
+import Header from "@/components/header/Header";
+import CategoryMenu from "@/components/CategoryMenu";
+import Footer from "@/components/footer/Footer";
+import { MyContextProvider } from "@/contexts/MyContextProvider";
+import "@/lib/antdCompatFlag";
+
+const SITE = process.env.NEXT_PUBLIC_BASE_URL || "https://example.com";
 
 export const metadata = {
-  title: 'Ноутбук купить в Минске | Большой каталог',
-  description: 'Широкий выбор ноутбуков по доступным ценам в Минске. Бесплатная доставка и гарантия качества. Более 1000 моделей.',
-  keywords: "ноутбук, купить, Минск, интернет-магазин, доставка",
-  alternates: {
-    canonical: 'http://localhost:3000/'
+  metadataBase: new URL(SITE),
+  title: "Купить аниме фигурки в Минске — Аниме магазин «Акани»",
+  description:
+    "Аниме магазин «Акани» — большой выбор аниме фигурок и мерча в Минске. Самовывоз из магазинов, доставка по городу курьером и по Беларуси почтой. Новинки каждую неделю, акции и предзаказы.",
+  keywords:
+    "аниме фигурки, фигурки Минск, купить фигурку аниме Минск, мерч аниме Минск, магазин аниме Минск, аниме подарки",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "ru_BY",
+    url: "/",
+    siteName: "Акани",
+    title: "Купить аниме фигурки в Минске — «Акани»",
+    description:
+      "Фигурки аниме, мерч и подарки. Самовывоз и доставка по Беларуси.",
+    images: [{ url: "/og/og-image.jpg", width: 1200, height: 630, alt: "Акани — магазин аниме" }],
   },
-  ogTitle: 'Ноутбук купить в Минске | Большой каталог',
-  ogDescription: 'Широкий выбор ноутбуков по доступным ценам в Минске. Бесплатная доставка и гарантия качества.',
-  ogImage: 'ссылка_на_изображение.jpg', // замените ссылку на фактическую ссылку на изображение
-  twitterTitle: 'Ноутбук купить в Минске | Большой каталог',
-  twitterDescription: 'Широкий выбор ноутбуков по доступным ценам в Минске. Бесплатная доставка и гарантия качества.',
-  twitterImage: 'ссылка_на_изображение.jpg' // замените ссылку на фактическую ссылку на изображение
-}
+  twitter: {
+    card: "summary_large_image",
+    title: "Купить аниме фигурки в Минске — «Акани»",
+    description:
+      "Большой выбор аниме фигурок и мерча. Самовывоз и доставка по Беларуси.",
+    images: ["/og/og-image.jpg"],
+  },
+};
+
 
 export default function RootLayout({ children }) {
   return (
@@ -25,9 +42,10 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="theme-color" content="#cdcecf" />
         <link rel="shortcut icon" href="/favicon/favicon.ico" />
+      
       </head>
       <MyContextProvider>
-        <body className='bg-[#f0f9ff]'>
+        <body className="bg-[#f0f9ff]">
           <Header />
           <CategoryMenu />
           {children}
@@ -35,5 +53,5 @@ export default function RootLayout({ children }) {
         </body>
       </MyContextProvider>
     </html>
-  )
+  );
 }

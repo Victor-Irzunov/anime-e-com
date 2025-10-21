@@ -1,477 +1,435 @@
-"use client"
-import React, { useEffect, useState } from 'react';
-import { PlusOutlined } from '@ant-design/icons';
-import { Button, InputNumber, Form, Input, Radio, message, Upload, Modal, Image, Popconfirm, Checkbox } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import { transliterate } from '@/transliterate/transliterate';
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import { Button, InputNumber, Form, Input, message, Popconfirm, Checkbox, Select } from "antd";
+import { transliterate } from "@/transliterate/transliterate";
 import { deleteOneImage, deleteOneProduct, updateOneProduct } from "@/http/adminAPI";
-const { Dragger } = Upload; // Используем компонент Dragger из Ant Design
+import CKeditor from "@/components/Editor/CKeditor";
+import SortableUpload from "@/components/admin/SortableUpload.client";
+
 const { TextArea } = Input;
 
+/* ==== helpers ==== */
+function parseMaybeJson(v, def = []) {
+  if (!v) return def;
+  if (Array.isArray(v)) return v;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return def;
+  }
+}
+const toInfoText = (raw) => {
+  const arr = parseMaybeJson(raw, []);
+  if (Array.isArray(arr)) {
+    return arr
+      .map((i) => {
+        const prop = (i?.property ?? "").toString().trim();
+        const val = (i?.value ?? "").toString().trim();
+        return prop ? `${prop}: ${val}` : null;
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  return "";
+};
 
-const getBase64 = (file) =>
-	new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.readAsDataURL(file);
-		reader.onload = () => resolve(reader.result);
-		reader.onerror = (error) => reject(error);
-	});
+// нормализуем для БД: оставляем относительный путь с /uploads/products/.. (или /uploads/..)
+function normalizePath(u) {
+  if (!u) return "";
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "";
+  if (base && u.startsWith(base)) return u.slice(base.length);
+  if (!u.startsWith("/uploads/")) return `/uploads/products/${u.replace(/^\/+/, "")}`;
+  return u;
+}
 
-const brandData = ["Apple", "Samsung", "LG"];
-const dataCategory = [
-	{
-		id: 1,
-		category: { name: 'Мобильные телефоны', value: 'mobilnye-telefony' },
-		subCategories: [{ name: 'Телефоны', value: 'telefony' }],
-	},
-	{
-		id: 2,
-		category: { name: 'Компьютеры', value: 'kompyutery' },
-		subCategories: [{ name: 'Ноутбуки', value: 'noutbuki' }, { name: 'MacBook', value: 'macbook' }],
-	},
-];
+// превью для UI (добавляем BASE при необходимости)
+function toDisplayUrl(raw) {
+  if (!raw) return "";
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `${base}${raw}`;
+}
+
+/** Собираем ВСЕ возможные варианты хранения картинок в один список */
+function extractAllImagePaths(product) {
+  const out = [];
+
+  // thumbnail: строка JSON массива [{image}] или просто строка "/uploads/.."
+  const t = product?.thumbnail;
+  const tParsed = parseMaybeJson(t, null);
+  if (Array.isArray(tParsed) && tParsed[0]?.image) {
+    const p = tParsed[0].image;
+    if (p && !out.includes(p)) out.push(p);
+  } else if (typeof t === "string" && (t.startsWith("/uploads/") || t.startsWith("http"))) {
+    out.push(t);
+  }
+
+  // images: JSON-массив объектов {image} ИЛИ массив строк
+  const imgs = parseMaybeJson(product?.images, []);
+  for (const it of imgs) {
+    const p = typeof it === "string" ? it : (it?.image || it?.url || "");
+    if (p && !out.includes(p)) out.push(p);
+  }
+  return out;
+}
+
+/** Загрузка НОВЫХ файлов (если есть) в /uploads/products и сбор всех URL в порядке галереи */
+async function buildUrlsFromGallery(gallery) {
+  const newFiles = gallery.filter((g) => g.file instanceof File);
+  let uploaded = [];
+
+  if (newFiles.length > 0) {
+    const form = new FormData();
+    form.append("subdir", "products");
+    newFiles.forEach((it) => form.append("originals", it.file));
+    newFiles.forEach((it) => form.append("thumbs", it.file));
+
+    const resp = await fetch("/api/uploads/multi", { method: "POST", body: form });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.message || "Не удалось загрузить изображения");
+    }
+    uploaded = Array.isArray(data.files) ? data.files : []; // [{originalUrl, thumbUrl}]
+  }
+
+  let take = 0;
+  const urls = gallery
+    .map((it) => {
+      if (it.file instanceof File) {
+        const u = uploaded[take++];
+        const url = u?.originalUrl || u?.thumbUrl || "";
+        return normalizePath(url);
+      }
+      const existing = it.raw || it.url || "";
+      return normalizePath(existing);
+    })
+    .filter(Boolean);
+
+  return urls;
+}
 
 const EditProductForm = ({ product, setProduct }) => {
-	const [editedInfo, setEditedInfo] = useState('');
-	const [subCategoryOptions, setSubCategoryOptions] = useState([]);
-	const [form] = Form.useForm();
-	const [thumbnailList, setThumbnailList] = useState([]); // Добавление состояния для списка главных изображений
-	const [imageList, setImageList] = useState([]); // Добавление состояния для списка дополнительных изображений
-	const [previewOpen, setPreviewOpen] = useState(false);
-	const [previewImage, setPreviewImage] = useState('');
-	const [previewTitle, setPreviewTitle] = useState('');
-	const [fileList, setFileList] = useState([]);
+  const [form] = Form.useForm();
 
-	useEffect(() => {
-		if (product && product.images) {
-			const formattedFileList = JSON.parse(product.images).map(imageObj => ({
-				uid: imageObj.image, // или какой-то другой уникальный идентификатор
-				name: imageObj.image,
-				status: 'done',
-				url: `/uploads/${imageObj.image}`,
-			}));
-			setFileList(formattedFileList);
-		}
-	}, [product]);
+  // справочники
+  const [cats, setCats] = useState([]);
+  const [subs, setSubs] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [categoryId, setCategoryId] = useState(null);
 
-	const props = {
-		beforeUpload(file) {
-			return new Promise((resolve) => {
-				const reader = new FileReader();
-				reader.readAsDataURL(file);
-				reader.onload = () => {
-					const img = document.createElement('img');
-					img.src = reader.result;
-					img.onload = () => {
-						const canvas = document.createElement('canvas');
-						canvas.width = img.naturalWidth;
-						canvas.height = img.naturalHeight;
-						const ctx = canvas.getContext('2d');
-						ctx.drawImage(img, 0, 0);
-						ctx.fillStyle = 'red';
-						ctx.textBaseline = 'middle';
-						ctx.font = '33px Arial';
-						ctx.fillText('Fajne buty', 20, 20);
-						canvas.toBlob((result) => resolve(result));
-					};
-				};
-			});
-		},
-	};
+  // контент
+  const [contentHtml, setContentHtml] = useState(product?.content || "");
 
-	const onRemove = (image) => {
-		if (!image.originFileObj) {
-			deleteOneImage(product.id, image.name)
-				.then(data => {
-					console.log("🚀 🚀 🚀  _ onRemove _ data:", data)
-				})
-		}
-	}
+  // ГАЛЕРЕЯ [{ uid, url?, file?, preview?, raw? }]
+  const [gallery, setGallery] = useState([]);
+  const [saving, setSaving] = useState(false);
 
+  const loadCats = async () => {
+    const r = await fetch("/api/admin/categories", { cache: "no-store" });
+    const j = await r.json();
+    if (j?.ok) setCats(j.items || []);
+  };
+  // возвращаем список, чтобы сразу найти subId
+  const loadSubs = async (catId) => {
+    if (!catId) {
+      setSubs([]);
+      return [];
+    }
+    const r = await fetch(`/api/admin/subcategories?categoryId=${catId}`, { cache: "no-store" });
+    const j = await r.json();
+    const items = j?.ok ? (j.items || []) : [];
+    setSubs(items);
+    return items;
+  };
+  const loadBrands = async () => {
+    const r = await fetch("/api/admin/brands", { cache: "no-store" });
+    const j = await r.json();
+    if (j?.ok) setBrands(j.items || []);
+  };
 
-	const handleCancel = () => setPreviewOpen(false);
+  useEffect(() => {
+    loadCats();
+    loadBrands();
+  }, []);
 
-	const handlePreview = async (file) => {
-		if (!file.url && !file.preview) {
-			file.preview = await getBase64(file.originFileObj);
-		}
-		setPreviewImage(file.url || file.preview);
-		setPreviewOpen(true);
-		setPreviewTitle(file.name || file.url.substring(file.url.lastIndexOf('/') + 1));
-	};
+  // ===== ИНИЦИАЛИЗАЦИЯ ГАЛЕРЕИ =====
+  useEffect(() => {
+    const ordered = extractAllImagePaths(product);
+    const initialGallery = ordered.map((raw, i) => ({
+      uid: `${i}-${raw}`,
+      url: toDisplayUrl(raw),
+      raw,
+    }));
+    setGallery(initialGallery);
+    setContentHtml(product?.content || "");
+  }, [product]);
 
+  // ===== ИНИЦИАЛИЗАЦИЯ INFO НЕЗАВИСИМО ОТ СПРАВОЧНИКОВ =====
+  useEffect(() => {
+    form.setFieldsValue({ info: toInfoText(product?.info) });
+  }, [product, form]);
 
-	const handleChange = ({ fileList: newFileList }) => setFileList(newFileList);
+  // ===== ОТЛОЖЕННАЯ ИНИЦИАЛИЗАЦИЯ CATEGORY/SUB/BRAND =====
+  useEffect(() => {
+    (async () => {
+      if (!product || !cats.length || !brands.length) return;
 
-	useEffect(() => {
-		if (product && product.info) {
-			const infoArray = JSON.parse(product.info);
-			const formattedInfo = infoArray.map(item => `${item.property}: ${item.value}`).join('\n');
-			setEditedInfo(formattedInfo);
-		}
-	}, [product]);
+      const catObj = cats.find((c) => c.name === product?.category);
+      let subId = undefined;
 
-	const handleInfoChange = (e) => {
-		setEditedInfo(e.target.value);
-	};
+      if (catObj?.id) {
+        setCategoryId(catObj.id);
+        const subsList = await loadSubs(catObj.id);
+        const subObj = subsList.find((s) => s.name === product?.subcategory);
+        subId = subObj?.id;
+      }
 
-	const onFinish = async (values) => {
-		console.log("🚀 🚀 🚀  _ onFinish _ values:", values)
+      const brandObj = brands.find((b) => b.name === product?.brand);
 
-		const infoArray = values.info ? values.info.split('\n').map(item => {
-			const [property, value] = item.split(':').map(part => part.trim());
-			return { property, value };
-		}) : [];
+      form.setFieldsValue({
+        categoryId: catObj?.id,
+        subCategoryId: subId,
+        brandId: brandObj?.id,
+      });
+    })();
+  }, [product, cats, brands, form]);
 
-		let titleLink = transliterate(values.title).replace(/\s+/g, '-').toLowerCase();
+  const catOptions = useMemo(() => cats.map((c) => ({ label: c.name, value: c.id })), [cats]);
+  const subOptions = useMemo(() => subs.map((s) => ({ label: s.name, value: s.id })), [subs]);
+  const brandOptions = useMemo(() => brands.map((b) => ({ label: b.name, value: b.id })), [brands]);
 
-		const formData = new FormData();
-		formData.append('title', values.title);
-		formData.append('description', values.description);
-		formData.append('price', values.price);
-		formData.append('discountPercentage', values.discountPercentage || 0);
-		formData.append('stock', values.stock);
-		formData.append('category', values.category);
-		formData.append('subcategory', values.subcategory);
-		formData.append('brand', values.brand);
-		formData.append('content', values.content);
-		formData.append('rating', values.rating);
-		formData.append('titleLink', titleLink);
-		formData.append('info', JSON.stringify(infoArray));
+  // Удаление существующей картинки на бэке
+  const handleRemoveExisting = async (rawPath) => {
+    await deleteOneImage(product.id, rawPath);
+  };
 
+  const onFinish = async (values) => {
+    try {
+      setSaving(true);
 
-		formData.append('banner', values.banner);
-		formData.append('discounts', values.discounts);
-		formData.append('povsednevnaya', values.povsednevnaya);
-		formData.append('recommended', values.recommended);
+      const urls = await buildUrlsFromGallery(gallery);
+      if (urls.length === 0) {
+        message.error("Добавьте хотя бы одно изображение товара");
+        setSaving(false);
+        return;
+      }
 
+      const imagesArr = urls.map((url, idx) => ({ url, sort: idx }));
+      const thumbnailUrl = imagesArr[0]?.url || "";
 
-		if (thumbnailList.length > 0) {
-			formData.append('thumbnail', thumbnailList[0].originFileObj);
-		}
+      const cat = cats.find((c) => c.id === values.categoryId);
+      const sub = subs.find((s) => s.id === values.subCategoryId);
+      const brand = brands.find((b) => b.id === values.brandId);
 
-		fileList.forEach(file => {
-			if (file.originFileObj) {
-				formData.append('images', file.originFileObj);
-			} else {
-				formData.append('images', file);
-			}
-		})
+      const infoArray = values.info
+        ? values.info
+            .split("\n")
+            .map((item) => {
+              const [property, ...valueParts] = item.trim().split(":");
+              const value = valueParts.join(":").trim();
+              if (!property) return null;
+              return { property, value };
+            })
+            .filter(Boolean)
+        : [];
 
-		updateOneProduct(product.id, formData)
-			.then((data) => {
-				message.success(data.message);
-				form.resetFields();
-				setProduct({})
-				setThumbnailList([]);
-				setImageList([]);
-				setFileList([])
-			})
-			.catch((error) => {
-				console.error('Ошибка при обновлении продукта:', error);
-				message.error('Ошибка при обновлении продукта');
-			});
-	}
+      const titleLink = transliterate(values.title).replace(/\s+/g, "-").toLowerCase();
 
-	// Функция для обновления списка подкатегорий при выборе категории
-	const handleCategoryChange = (category) => {
-		const categoryData = dataCategory.find((cat) => cat.category.value === category);
-		if (categoryData) {
-			setSubCategoryOptions(categoryData.subCategories);
-			// Если подкатегория не является обязательным полем, устанавливаем значение undefined
-			form.setFieldsValue({ subcategory: undefined });
-		}
-	};
+      const fd = new FormData();
+      fd.append("title", values.title);
+      fd.append("description", values.description);
+      fd.append("price", values.price);
+      fd.append("discountPercentage", values.discountPercentage || 0);
+      fd.append("stock", values.stock);
+      fd.append("rating", values.rating || 0);
+      fd.append("titleLink", titleLink);
 
-	const handleInfoPressEnter = (e) => {
-		const value = e.target.value.trim();
-		if (value) {
-			const newInfo = value.split('/').map((item) => item.trim());
-			setInfoArray([...infoArray, ...newInfo]);
+      fd.append("article", values.article || "");
 
-			e.target.value = '';
-		}
-	};
-	const confirm = () => {
-		deleteOneProduct(product.id)
-			.then(data => {
-				message.success(data);
-			})
-	};
+      fd.append("category", cat?.name || "");
+      fd.append("subcategory", sub?.name || "");
+      fd.append("brand", brand?.name || "");
 
-	return (
-		<Form
-			form={form}
-			name="editProduct"
-			onFinish={onFinish}
-			labelCol={{ span: 24 }}
-			wrapperCol={{ span: 24 }}
-			initialValues={{
-				title: product.title,
-				description: product.description,
-				price: product.price,
-				discountPercentage: product.discountPercentage,
-				stock: product.stock,
-				category: product.category,
-				subcategory: product.subcategory,
-				brand: product.brand,
-				rating: product.rating,
-				info: JSON.parse(product.info).map(item => `${item.property}: ${item.value}`).join('\n'),
-				content: product.content,
-				banner: product.banner,
-				discounts: product.discounts,
-				povsednevnaya: product.povsednevnaya,
-				recommended: product.recommended
-			}}
-		>
-			{/*1 Название продукта */}
-			<Form.Item
-				label="Название"
-				name="title"
-				rules={[{ required: true, message: 'Введите название продукта' }]}
-			>
-				<Input />
-			</Form.Item>
+      fd.append("categoryId", values.categoryId ?? "");
+      fd.append("subCategoryId", values.subCategoryId ?? "");
+      fd.append("brandId", values.brandId ?? "");
 
-			{/*2 Описание продукта */}
-			<Form.Item
-				label="Описание"
-				name="description"
-				rules={[{ required: true, message: 'Введите описание продукта' }]}
-			>
-				<TextArea autoSize={{ minRows: 3 }} />
-			</Form.Item>
+      fd.append("content", contentHtml || "");
+      fd.append("banner", values.banner || false);
+      fd.append("discounts", values.discounts || false);
+      fd.append("povsednevnaya", values.povsednevnaya || false);
+      fd.append("recommended", values.recommended || false);
 
-			{/*3 Цена продукта */}
-			<Form.Item
-				label="Цена"
-				name="price"
-				rules={[{ required: true, message: 'Введите цену продукта' }]}
-			>
-				<InputNumber min={0} step={0.01} />
-			</Form.Item>
+      fd.append("thumbnailUrl", thumbnailUrl);
+      fd.append("imagesJson", JSON.stringify(imagesArr));
+      fd.append("info", JSON.stringify(infoArray));
 
-			{/*4 Процент скидки */}
-			<Form.Item
-				label="Скидка"
-				name="discountPercentage"
-			>
-				<InputNumber min={0} max={100} />
-			</Form.Item>
+      const res = await updateOneProduct(product.id, fd);
+      if (res) {
+        message.success(res?.message || "Продукт обновлён");
+        form.resetFields();
+        setProduct({});
+        setGallery([]);
+      }
+    } catch (e) {
+      console.error(e);
+      message.error("Ошибка при обновлении продукта");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-			{/*5 Количество товара в наличии */}
-			<Form.Item
-				label="Наличие"
-				name="stock"
-				rules={[{ required: true, message: 'Введите количество товара' }]}
-			>
-				<InputNumber min={0} />
-			</Form.Item>
+  const confirmDelete = async () => {
+    try {
+      const data = await deleteOneProduct(product.id);
+      message.success(data);
+      setProduct({});
+    } catch {
+      message.error("Ошибка при удалении товара");
+    }
+  };
 
-			{/*6 Категория */}
-			<Form.Item label="Категория"
-				name="category"
-				rules={[{ required: true }]}
-			>
-				<Radio.Group onChange={(e) => handleCategoryChange(e.target.value)}>
-					{dataCategory.map((el) => (
-						<Radio.Button key={el.id} value={el.category.value}>
-							{el.category.name}
-						</Radio.Button>
-					))}
-				</Radio.Group>
-			</Form.Item>
+  return (
+    <Form
+      form={form}
+      name="editProduct"
+      onFinish={onFinish}
+      labelCol={{ span: 24 }}
+      wrapperCol={{ span: 24 }}
+      initialValues={{
+        title: product?.title,
+        description: product?.description,
+        price: product?.price,
+        discountPercentage: product?.discountPercentage,
+        stock: product?.stock,
+        article: product?.article,
+        rating: product?.rating,
+        banner: product?.banner,
+        discounts: product?.discounts,
+        povsednevnaya: product?.povsednevnaya,
+        recommended: product?.recommended,
+        // info выставляется отдельно эффектом, чтобы не ждать справочники
+      }}
+    >
+      <Form.Item label="Название" name="title" rules={[{ required: true, message: "Введите название продукта" }]}>
+        <Input />
+      </Form.Item>
 
-			{/*7 Подкатегория */}
-			<Form.Item
-				label="Подкатегория"
-				name="subcategory"
-				rules={[{ required: true }]}
-			>
-				<Radio.Group>
-					{subCategoryOptions.map((subCategory) => (
-						<Radio.Button key={subCategory.value} value={subCategory.value}>
-							{subCategory.name}
-						</Radio.Button>
-					))}
-				</Radio.Group>
-			</Form.Item>
+      <Form.Item label="Описание" name="description" rules={[{ required: true, message: "Введите описание продукта" }]}>
+        <TextArea autoSize={{ minRows: 3 }} />
+      </Form.Item>
 
+      <Form.Item label="Цена" name="price" rules={[{ required: true, message: "Введите цену продукта" }]}>
+        <InputNumber min={0} step={0.01} />
+      </Form.Item>
 
-			{/*8 Бренд */}
-			<Form.Item
-				label="Бренд"
-				name="brand"
-				rules={[{ required: true }]}
-			>
-				<Radio.Group>
-					{
-						brandData.map(el => (
-							<Radio.Button key={el} value={el}>{el}</Radio.Button>
-						))
-					}
-				</Radio.Group>
-			</Form.Item>
+      <Form.Item label="Скидка" name="discountPercentage">
+        <InputNumber min={0} max={100} />
+      </Form.Item>
 
-			{/*9 Рейтинг */}
-			<Form.Item
-				label="Рейтинг"
-				name="rating"
-			>
-				<InputNumber min={0} max={5} step={0.1} />
-			</Form.Item>
+      <Form.Item label="Наличие" name="stock" rules={[{ required: true, message: "Введите количество товара" }]}>
+        <InputNumber min={0} />
+      </Form.Item>
 
-			{/*10 Главное изображение */}
-			<div className=''>
-				{
-					JSON.parse(product.thumbnail).length ?
-						<Image width={200} src={`${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${JSON.parse(product.thumbnail)[0].image}`} />
-						:
-						<p className='text-red-400'>
-							нет главного изображения
-						</p>
-				}
+      <Form.Item label="Артикль (SKU)" name="article">
+        <Input placeholder="Например: AKN-00123" />
+      </Form.Item>
 
-				<Form.Item
-					label="Изменить главное изображение"
-					name="thumbnail"
-				>
-					<Upload
-						accept="image/*"
-						fileList={thumbnailList}
-						beforeUpload={() => false}
-						onChange={({ fileList }) => setThumbnailList(fileList)}
-					>
-						<Button icon={<UploadOutlined />}>Загрузить новое изображение</Button>
-					</Upload>
-				</Form.Item>
-			</div>
+      <Form.Item label="Категория" name="categoryId" rules={[{ required: true, message: "Выберите категорию" }]}>
+        <Select
+          options={catOptions}
+          placeholder="Выберите категорию"
+          onChange={async (val) => {
+            setCategoryId(val);
+            form.setFieldsValue({ subCategoryId: undefined });
+            await loadSubs(val);
+          }}
+          showSearch
+          optionFilterProp="label"
+        />
+      </Form.Item>
 
+      <Form.Item label="Подкатегория" name="subCategoryId" rules={[{ required: true, message: "Выберите подкатегорию" }]}>
+        <Select
+          options={subOptions}
+          placeholder="Выберите подкатегорию"
+          showSearch
+          optionFilterProp="label"
+          disabled={!categoryId}
+        />
+      </Form.Item>
 
+      <Form.Item label="Бренд" name="brandId">
+        <Select
+          options={brandOptions}
+          placeholder="Выберите бренд (аниме)"
+          allowClear
+          showSearch
+          optionFilterProp="label"
+        />
+      </Form.Item>
 
-			{/*11 Доп. изображения */}
-			<div className='mt-10 mb-10'>
-				<p className='mb-3'>
-					Редактировать дополнительные изображения
-				</p>
+      <Form.Item label="Рейтинг" name="rating">
+        <InputNumber min={0} max={5} step={0.1} />
+      </Form.Item>
 
-				<Form.Item
-					label=""
-					name="images"
-				>
-					<Dragger
-						action="https://run.mocky.io/v3/435e224c-44fb-4773-9faf-380c5e6a2188"
-						fileList={fileList}
-						onPreview={handlePreview}
-						onChange={handleChange}
-						onRemove={onRemove}
-						multiple={true}
-						listType="picture-card"
-						accept="image/*"
-						maxCount={8}
-						{...props}
-					>
-						{fileList.length < 8 && (
-							<div className=''>
-								<PlusOutlined />
-								<div className="ant-upload-text">Загрузить еще изображения</div>
-							</div>
-						)}
-					</Dragger>
-				</Form.Item>
+      {/* === ГАЛЕРЕЯ С ПЕРЕТАСКИВАНИЕМ === */}
+      <div className="py-6">
+        <p className="font-medium mb-2">Галерея (перетаскивание, первое — главное)</p>
+        <SortableUpload
+          value={gallery}
+          onChange={setGallery}
+          label="Добавить изображения"
+          onRemoveExisting={handleRemoveExisting}
+        />
+      </div>
 
-				<Modal visible={previewOpen} title={previewTitle} footer={null} onCancel={handleCancel}>
-					<img
-						alt="example"
-						style={{
-							width: '100%',
-						}}
-						src={previewImage}
-					/>
-				</Modal>
-			</div>
+      <div className="mb-2 font-semibold">Контент для товара (SEO/описание)</div>
+      <CKeditor value={contentHtml} onChange={setContentHtml} />
 
+      <Form.Item label="Информация" name="info">
+        <TextArea
+          autoSize={{ minRows: 3 }}
+          placeholder={"Характеристика: значение\nМатериал: ПВХ\nВысота: 18 см"}
+        />
+      </Form.Item>
 
-			{/*12 Информация */}
-			<Form.Item
-				label="Информация"
-				name="info"
-			>
-				<TextArea
-					autoSize={{ minRows: 3 }}
-					onPressEnter={handleInfoPressEnter} // Обработчик нажатия клавиши Enter
-				/>
-			</Form.Item>
+      <Form.Item label="Баннер на главной" name="banner" valuePropName="checked">
+        <Checkbox>Добавить товар на главную</Checkbox>
+      </Form.Item>
 
-			{/*13 Контент */}
-			<Form.Item
-				label="Контент для товара"
-				name="content"
-				rules={[{ required: true, message: 'Введите контент продукта' }]}
-			>
-				<TextArea autoSize={{ minRows: 3 }} />
-			</Form.Item>
+      <Form.Item label="Акции и скидки" name="discounts" valuePropName="checked">
+        <Checkbox>Добавить товар на главную</Checkbox>
+      </Form.Item>
 
-			{/*14 Баннер */}
-			<Form.Item
-				label="Баннер на главной странице"
-				name="banner"
-				valuePropName="checked"
-			>
-				<Checkbox>Добавить товар на главную</Checkbox>
-			</Form.Item>
+      <Form.Item label="Повседневные" name="povsednevnaya" valuePropName="checked">
+        <Checkbox>Добавить товар на главную</Checkbox>
+      </Form.Item>
 
-			{/*15 Акции и скидки */}
-			<Form.Item
-				label="Акции и скидки на главной"
-				name="discounts"
-				valuePropName="checked"
-			>
-				<Checkbox>Добавить товар на главную</Checkbox>
-			</Form.Item>
+      <Form.Item label="Рекомендуемые" name="recommended" valuePropName="checked">
+        <Checkbox>Добавить товар в рекомендуемые</Checkbox>
+      </Form.Item>
 
-			{/*16 Повседневные товары */}
-			<Form.Item
-				label="Повседневные товары на главной"
-				name="povsednevnaya"
-				valuePropName="checked"
-			>
-				<Checkbox>Добавить товар на главную</Checkbox>
-			</Form.Item>
+      <div className="flex justify-end mb-8">
+        <Popconfirm
+          title="Удалить товар"
+          description="Вы точно хотите удалить товар?"
+          onConfirm={confirmDelete}
+          okText="Да"
+          cancelText="Нет"
+        >
+          <Button danger size="small">Удалить товар</Button>
+        </Popconfirm>
+      </div>
 
-			{/*16 Рекомендуемые */}
-			<Form.Item
-				label="Рекомендуемые товары"
-				name="recommended"
-				valuePropName="checked"
-			>
-				<Checkbox>Добавить товар в рекомендуемые</Checkbox>
-			</Form.Item>
-
-
-			<div className='flex justify-end mb-8'>
-				<Popconfirm
-					title="Удалить товар"
-					description="Вы точно хотите удалить товар?"
-					onConfirm={confirm}
-					// onCancel={cancel}
-					okText="Да"
-					cancelText="Нет"
-					className=''
-				>
-					<Button danger size='small'>Удалить товар</Button>
-				</Popconfirm>
-			</div>
-			{/* Кнопка "Сохранить" */}
-			<Form.Item >
-				<Button type="primary" className='text-black bg-white' htmlType="submit">
-					Сохранить изменения
-				</Button>
-			</Form.Item>
-
-
-		</Form>
-	);
+      <Form.Item>
+        <Button type="primary" className="text-black bg-white" htmlType="submit" loading={saving}>
+          {saving ? "Сохранение…" : "Сохранить изменения"}
+        </Button>
+      </Form.Item>
+    </Form>
+  );
 };
 
 export default EditProductForm;
