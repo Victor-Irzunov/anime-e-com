@@ -102,7 +102,7 @@ function ProductListSingle({ product = {}, isListView, categorySlug, subcategory
       <div className="flex-1 flex flex-col justify-between">
         {/* Title */}
         <h3
-          className={`font-semibold text-base leading-snug ${isListView ? "" : "xz:text-sm sd:text-base"
+          className={`font-semibold text-base leading-snug ${isListView ? "" : "xz:text-xs sd:text-base"
             }`}
           style={{
             display: "-webkit-box",
@@ -121,13 +121,13 @@ function ProductListSingle({ product = {}, isListView, categorySlug, subcategory
 
         {/* Price row */}
         <div className="pt-1 flex items-center gap-3">
-          <strong className={`${isListView ? "text-lg" : "text-base"} font-medium text-gray-800`}>
+          <strong className={`${isListView ? "text-lg" : "text-base"} font-bold text-gray-800`}>
             {price.toFixed(2)} руб
           </strong>
 
           {hasDiscount ? (
             <>
-              <span className={`font-light text-gray-500 line-through ${isListView ? "block" : "xz:hidden sd:block"}`}>
+              <span className={`font-extralight text-gray-500 line-through ${isListView ? "block" : "xz:hidden sd:block"}`}>
                 {oldPrice.toFixed(2)} руб
               </span>
               <span className="text-red-500 text-xs font-semibold">-{dp}%</span>
@@ -136,11 +136,11 @@ function ProductListSingle({ product = {}, isListView, categorySlug, subcategory
         </div>
 
         {/* Rating + stock + article */}
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-2 flex sd:flex-row xz:flex-col xz:space-y-1 sd:space-y-0 sd:items-center xz:items-start justify-between">
           {/* rating half (xs) */}
           <div className="flex items-center gap-2">
             <div className="rating rating-xs rating-half">
-              <input type="radio" name={`rating-${product.id}`} className="rating-hidden" aria-label="no rating" />
+              <input type="radio" name={`rating-${product.id}`} className="rating-hidden hidden" aria-label="no rating" />
               {Array.from({ length: 10 }).map((_, i) => {
                 const half = (i % 2) === 0 ? "mask-half-1" : "mask-half-2";
                 const label =
@@ -167,24 +167,21 @@ function ProductListSingle({ product = {}, isListView, categorySlug, subcategory
                 );
               })}
             </div>
-            <span className="text-[10px] text-gray-500">{ratingVal.toFixed(1)}</span>
+            <span className="text-sm text-gray-500">{ratingVal.toFixed(1)}</span>
           </div>
 
           {/* stock */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sd:pl-0 xz:pl-0.5">
             <span className={`text-[10px] ${inStock ? "text-emerald-600" : "text-gray-500"}`}>
               {inStock ? "В наличии" : "Под заказ"}
             </span>
-            {/* Артикль — если появится */}
-            {sku ? (
-              <span className="font-light text-[10px] text-gray-400">Артикль: {sku}</span>
-            ) : null}
+          
           </div>
         </div>
 
         {/* Description */}
         <p
-          className={`py-2 text-gray-500 text-xs`}
+          className={`py-2 text-gray-500 sd:text-xs xz:text-[10px]`}
           style={{
             display: "-webkit-box",
             WebkitLineClamp: 2,
@@ -198,7 +195,7 @@ function ProductListSingle({ product = {}, isListView, categorySlug, subcategory
 
         {/* CTA */}
         <span className="mt-auto pt-1">
-          <span className={`inline-flex items-center gap-1 text-primary ${isListView ? "block" : "sd:block xz:hidden"}`}>
+          <span className={`inline-flex items-center gap-1 text-secondary sd:text-sm xz:text-[10px] xy:text-xs`}>
             Перейти к просмотру
             <svg
               xmlns="http://www.w3.org/2000/svg"

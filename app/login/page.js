@@ -1,37 +1,8 @@
-"use client"
-import LoginForm from "@/components/Form/FormLogin"
-import RegistrationForm from "@/components/Form/RegistrationForm"
-import { useState } from "react"
-import { useSearchParams } from 'next/navigation'
+// app/login/page.jsx  ← серверный компонент (без "use client")
+import AuthScreen from '@/components/Auth/AuthScreen';
 
-const page = () => {
-	const [isActive, setIsActive] = useState(true)
-	const searchParams = useSearchParams()
-	const search = searchParams.get('from')
-	
-	return (
-		<section className="min-h-screen py-32 relative">
-			<div className='container mx-auto'>
-				{
-					isActive ?
-						<div className=''>
-							<h1 className='text-2xl'>
-								Войти
-							</h1>
-							<LoginForm setIsActive={setIsActive} search={search} />
-						</div>
-						:
-						<div className=''>
-							<h1 className='text-2xl'>
-								Зарегистрироваться
-							</h1>
-							<RegistrationForm setIsActive={setIsActive} search={search} />
-						</div>
-				}
-
-
-			</div>
-		</section>
-	)
+export default function LoginPage({ searchParams }) {
+  // читаем ?from=korzina (или null)
+  const search = typeof searchParams?.from === 'string' ? searchParams.from : null;
+  return <AuthScreen search={search} />;
 }
-export default page;

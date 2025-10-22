@@ -1,36 +1,97 @@
 // /components/ProductDetailsOverview.js
-import ImgProductDetails from "./ImgProductDetails";
+// Таблица характеристик «как на скрине»: толстый внешний бордер, вертикальная линия посередине,
+// крупные отступы по строкам, ссылка в строке «Категория».
 
-function ProductDetailsOverview({ product }) {
-  const info = Array.isArray(product.info)
-    ? product.info
-    : (() => {
-        try { return JSON.parse(product.info || "[]"); } catch { return []; }
-      })();
+function parseInfo(raw) {
+  if (Array.isArray(raw)) return raw;
+  try {
+    return JSON.parse(raw || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function isCategoryRow(label = "") {
+  const l = String(label).trim().toLowerCase();
+  // поддержим разные варианты написания
+  return ["категория", "категория:", "category"].includes(l.replace(/:$/, ""));
+}
+
+export default function ProductDetailsOverview({ product = {} }) {
+  const info = parseInfo(product.info);
+
+  // русское название категории (если в info не передали — возьмём из сущности)
+  const categoryName =
+    info.find((x) => isCategoryRow(x?.property))?.value ||
+    product.category ||
+    "";
+
+  // slug категории для ссылки
+  const categorySlug =
+    product.categoryRel?.value ||
+    product.categoryValue || // если пришло из API в плоском поле
+    "";
 
   return (
     <div>
-
-
-      <div className="bg-white p-6 pt-4 rounded-lg border border-gray-300 gap-6 mt-6">
-        <h3 className="mb-8 text-lg">Характеристики</h3>
-        <div className="flow-root">
-          <dl className="-my-3 divide-y divide-gray-100">
-            {info.map((spec, i) => (
-              <div key={i} className="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
-                <dt className="font-medium text-gray-900">{spec.property}</dt>
-                <dd className="text-gray-700 sm:col-span-2">{spec.value}</dd>
-              </div>
-            ))}
-          </dl>
+      <div className="bg-white rounded-lg border border-gray-300 overflow-hidden mt-6">
+        <div className="px-6 pt-4 pb-2">
+          <h2 className="text-base font-medium">Характеристики</h2>
         </div>
+
+        {info.length ? (
+          // Таблица без внешних разрывов, с чёткой сеткой
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed border-collapse text-xs sd:text-sm">
+              <colgroup>
+                {/* Левая колонка фикс, правая — тянется */}
+                <col />
+                <col />
+              </colgroup>
+              <tbody>
+                {info.map((spec, i) => {
+                  const name = String(spec?.property ?? "");
+                  const value = spec?.value;
+
+                  return (
+                    <tr key={`${name}-${i}`} className="border-t border-gray-200">
+                      {/* Левая ячейка — без переноса, как на макете */}
+                      <td className="px-7 py-6 whitespace-nowrap align-middle font-medium text-gray-900 border-r border-gray-200">
+                        {name.endsWith(":") ? name : `${name}:`}
+                      </td>
+
+                      {/* Правая ячейка */}
+                      <td className="px-7 py-6 align-middle text-gray-800">
+                        {isCategoryRow(name) && categorySlug ? (
+                          <a
+                            href={`/${encodeURIComponent(categorySlug)}`}
+                            className="text-red-600 underline hover:no-underline"
+                          >
+                            {String(value || categoryName)}
+                          </a>
+                        ) : (
+                          <span className="whitespace-normal">{String(value ?? "")}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="px-6 pb-6">
+            <p className="text-sm text-gray-500">Характеристики не указаны.</p>
+          </div>
+        )}
       </div>
 
       {product.content ? (
-        <article className="mt-20 prose max-w-none" dangerouslySetInnerHTML={{ __html: product.content }} />
+        <article
+          className="mt-10 prose max-w-none"
+          dangerouslySetInnerHTML={{ __html: product.content }}
+        />
       ) : null}
     </div>
   );
 }
-
-export default ProductDetailsOverview;

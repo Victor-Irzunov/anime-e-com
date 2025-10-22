@@ -8,6 +8,7 @@ import ProductFilterAside from "@/components/ProductFilterAside";
 import ProductList from "@/components/ProductList";
 import { RiLayoutGridLine, RiListCheck2, RiFilter2Line } from "react-icons/ri";
 import { getAllProductsOneSubCategory } from "@/http/adminAPI";
+import Image from "next/image";
 
 export default function ClientList({ category, subcategory }) {
   // Список товаров
@@ -19,7 +20,7 @@ export default function ClientList({ category, subcategory }) {
   const [sortOption, setSortOption] = useState("");
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [priceRange, setPriceRange] = useState({ from: "", to: "" });
-  const [isListView, setIsListView] = useState(true);
+  const [isListView, setIsListView] = useState(false);
 
   // Пагинация
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,7 +41,7 @@ export default function ClientList({ category, subcategory }) {
     setSelectedBrands([]);
     setPriceRange({ from: "", to: "" });
     setSortOption("");
-    setIsListView(true);
+    setIsListView(false);
 
     setCurrentPage(1);
     setTotalItems(0);
@@ -120,7 +121,7 @@ export default function ClientList({ category, subcategory }) {
   };
 
   return (
-    <div className="container mx-auto pt-2 pb-10">
+    <div className="container mx-auto pt-2 pb-20">
       <Breadcrumbs />
       <div className="my-5">
         <h1 className="text-4xl">{h1}</h1>
@@ -132,18 +133,20 @@ export default function ClientList({ category, subcategory }) {
           <span className="m-auto loading loading-ring loading-lg"></span>
         </div>
       ) : (
-        <div className="px-2 py-4 flex">
+        <div className="px-2 py-4 flex relative">
           {/* Сайдбар фильтров — десктоп */}
-          <div className="sd:block xz:hidden">
-            <ProductFilterAside
-              products={products}
-              onBrandFilterChange={handleBrandFilterChange}
-              onPriceChange={handlePriceChange}
-              onResetPriceFilter={handleResetPriceFilter}
-              onResetBrandFilter={() => setSelectedBrands([])}
-              selectedBrands={selectedBrands}
-              priceRange={priceRange}
-            />
+          <div className=''>
+            <div className="sd:block xz:hidden sticky top-10">
+              <ProductFilterAside
+                products={products}
+                onBrandFilterChange={handleBrandFilterChange}
+                onPriceChange={handlePriceChange}
+                onResetPriceFilter={handleResetPriceFilter}
+                onResetBrandFilter={() => setSelectedBrands([])}
+                selectedBrands={selectedBrands}
+                priceRange={priceRange}
+              />
+            </div>
           </div>
 
           {/* Контент */}
@@ -154,14 +157,15 @@ export default function ClientList({ category, subcategory }) {
 
             {/* Панель сортировки + вид + мобильный фильтр */}
             <div className="pt-[1.7rem] pb-2 flex flex-col items-center">
-              {/* Мобильный фильтр */}
-              <div className="flex justify-start w-full sd:hidden xz:block mb-4">
-                <div className="drawer z-40">
+
+              <div className='flex justify-between w-full space-x-2'>
+
+                <div className="sd:hidden xz:block drawer z-40">
                   <input id="my-drawer4" type="checkbox" className="drawer-toggle" />
                   <div className="drawer-content">
                     <label
                       htmlFor="my-drawer4"
-                      className="btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item"
+                      className="btn btn-xs btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item"
                     >
                       <RiFilter2Line fontSize={20} />
                       <span>Фильтр</span>
@@ -183,44 +187,44 @@ export default function ClientList({ category, subcategory }) {
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Сортировка + переключатель вида */}
-              <div className="flex justify-between items-center gap-2 sd:w-full mb-8">
-                <div>
-                  <select
-                    id="SortBy"
-                    className="select min-h-0 h-10 border-gray-300 rounded-lg"
-                    onChange={handleSortChange}
-                    value={sortOption}
-                  >
-                    <option value="">Сортировать</option>
-                    <option value="PriceLowToHigh">По увеличении цены</option>
-                    <option value="PriceHighToLow">По уменьшении цены</option>
-                    <option value="Rating">Рейтингу</option>
-                  </select>
+
+                {/* Сортировка + переключатель вида */}
+                <div className="flex justify-between items-center gap-2 w-full mb-8">
+                  <div className="w-full">
+                    <select
+                      id="SortBy"
+                      className="select select-xs min-h-0 h-10 border-gray-300 rounded-lg"
+                      onChange={handleSortChange}
+                      value={sortOption}
+                    >
+                      <option value="">Сортировать</option>
+                      <option value="PriceLowToHigh">По увеличении цены</option>
+                      <option value="PriceHighToLow">По уменьшении цены</option>
+                      <option value="Rating">Рейтингу</option>
+                    </select>
+                  </div>
+
+                  <div className="join space-x-2">
+                    <button
+                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${isListView ? "bg-gray-200" : ""
+                        }`}
+                      onClick={() => setIsListView(true)}
+                      aria-label="Список"
+                    >
+                      <RiListCheck2 />
+                    </button>
+                    <button
+                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${!isListView ? "bg-gray-200" : ""
+                        }`}
+                      onClick={() => setIsListView(false)}
+                      aria-label="Плитка"
+                    >
+                      <RiLayoutGridLine />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="join space-x-1">
-                  <button
-                    className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${
-                      isListView ? "bg-gray-200" : ""
-                    }`}
-                    onClick={() => setIsListView(true)}
-                    aria-label="Список"
-                  >
-                    <RiListCheck2 />
-                  </button>
-                  <button
-                    className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${
-                      !isListView ? "bg-gray-200" : ""
-                    }`}
-                    onClick={() => setIsListView(false)}
-                    aria-label="Плитка"
-                  >
-                    <RiLayoutGridLine />
-                  </button>
-                </div>
               </div>
 
               {/* Список товаров */}
@@ -244,10 +248,27 @@ export default function ClientList({ category, subcategory }) {
       )}
 
       {content ? (
-        <div
-          className="prose max-w-none mt-8"
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
+        <div className='relative z-10 overflow-hidden py-20 mt-9'>
+          <div
+            className="prose max-w-none mt-8"
+            dangerouslySetInnerHTML={{ __html: content }}
+          />
+          <Image
+            src='/images/anime/anime.webp'
+            alt='Аниме фигурка'
+            width={300} height={300}
+            className="absolute sd:top-1/2 xz:top-0 sd:right-0 xz:-right-8 -z-10 sd:w-[300px] xz:w-[200px]"
+          />
+
+          <Image
+            src='/images/anime/anime-2.webp'
+            alt='Аниме фигурка'
+            width={200} height={200}
+            className="absolute sd:-bottom-16 xz:bottom-0 -left-4 -z-10"
+          />
+
+        </div>
+
       ) : null}
     </div>
   );

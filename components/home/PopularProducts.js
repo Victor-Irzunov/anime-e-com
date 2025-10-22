@@ -2,20 +2,10 @@
 import ProductsCarouselClient from "@/components/home/ProductsCarousel.client";
 
 async function getPopular() {
-  // пробуем специальный роут, если он есть
   try {
-    const r1 = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/product/recommended`, { cache: "no-store" });
-    if (r1.ok) {
-      const j = await r1.json().catch(() => []);
-      return Array.isArray(j) ? j : Array.isArray(j?.items) ? j.items : [];
-    }
-  } catch {}
-  // fallback: берём все и фильтруем
-  try {
-    const r2 = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/product`, { cache: "no-store" });
-    const j = await r2.json().catch(() => ({}));
-    const arr = Array.isArray(j?.items) ? j.items : Array.isArray(j) ? j : [];
-    return arr.filter((p) => Boolean(p.recommended));
+    const r = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/product/popular`, { cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    return Array.isArray(j?.items) ? j.items : Array.isArray(j) ? j : [];
   } catch {
     return [];
   }

@@ -5,6 +5,7 @@ import CategoryMenu from "@/components/CategoryMenu";
 import Footer from "@/components/footer/Footer";
 import { MyContextProvider } from "@/contexts/MyContextProvider";
 import "@/lib/antdCompatFlag";
+import ClientRoot from "@/components/ClientRoot";
 
 const SITE = process.env.NEXT_PUBLIC_BASE_URL || "https://example.com";
 
@@ -42,13 +43,15 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="theme-color" content="#cdcecf" />
         <link rel="shortcut icon" href="/favicon/favicon.ico" />
-      
+
       </head>
       <MyContextProvider>
         <body className="bg-[#f0f9ff]">
           <Header />
           <CategoryMenu />
-          {children}
+          <ClientRoot>
+            {children}
+          </ClientRoot>
           <Footer />
         </body>
       </MyContextProvider>

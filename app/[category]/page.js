@@ -3,6 +3,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ClientList from "./ClientList";
+import Image from "next/image";
 
 export async function generateMetadata({ params }) {
   const { category } = await params;
@@ -66,10 +67,30 @@ export default async function CategoryPage({ params }) {
         </div>
 
         {cat.contentHtml ? (
-          <div
-            className="prose max-w-none mt-12"
-            dangerouslySetInnerHTML={{ __html: cat.contentHtml }}
-          />
+          <div className='relative z-10'>
+            <div
+              className="prose max-w-none mt-12"
+              dangerouslySetInnerHTML={{ __html: cat.contentHtml }}
+            >
+
+
+            </div>
+            <Image
+              src='/images/anime/anime.webp'
+              alt='Аниме фигурка'
+              width={300} height={300}
+              className="absolute sd:top-1/2 xz:top-0 sd:right-0 xz:-right-8 -z-10 sd:w-[300px] xz:w-[200px]"
+            />
+
+              <Image
+                      src='/images/anime/anime-2.webp'
+                      alt='Аниме фигурка'
+                      width={200} height={200}
+                      className="absolute -bottom-16 -left-4 -z-10"
+                    />
+
+          </div>
+
         ) : null}
       </div>
     </main>

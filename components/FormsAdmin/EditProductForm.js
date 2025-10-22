@@ -1,11 +1,13 @@
+// /components/FormsAdmin/EditProductForm.jsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, InputNumber, Form, Input, message, Popconfirm, Checkbox, Select } from "antd";
+import { Button, InputNumber, Form, Input, Popconfirm, Checkbox, Select } from "antd";
 import { transliterate } from "@/transliterate/transliterate";
 import { deleteOneImage, deleteOneProduct, updateOneProduct } from "@/http/adminAPI";
 import CKeditor from "@/components/Editor/CKeditor";
 import SortableUpload from "@/components/admin/SortableUpload.client";
+import { toastSuccess, toastError, toastWarning } from "@/lib/toast";
 
 const { TextArea } = Input;
 
@@ -13,11 +15,7 @@ const { TextArea } = Input;
 function parseMaybeJson(v, def = []) {
   if (!v) return def;
   if (Array.isArray(v)) return v;
-  try {
-    return JSON.parse(v);
-  } catch {
-    return def;
-  }
+  try { return JSON.parse(v); } catch { return def; }
 }
 const toInfoText = (raw) => {
   const arr = parseMaybeJson(raw, []);
@@ -54,8 +52,6 @@ function toDisplayUrl(raw) {
 /** Собираем ВСЕ возможные варианты хранения картинок в один список */
 function extractAllImagePaths(product) {
   const out = [];
-
-  // thumbnail: строка JSON массива [{image}] или просто строка "/uploads/.."
   const t = product?.thumbnail;
   const tParsed = parseMaybeJson(t, null);
   if (Array.isArray(tParsed) && tParsed[0]?.image) {
@@ -64,8 +60,6 @@ function extractAllImagePaths(product) {
   } else if (typeof t === "string" && (t.startsWith("/uploads/") || t.startsWith("http"))) {
     out.push(t);
   }
-
-  // images: JSON-массив объектов {image} ИЛИ массив строк
   const imgs = parseMaybeJson(product?.images, []);
   for (const it of imgs) {
     const p = typeof it === "string" ? it : (it?.image || it?.url || "");
@@ -74,7 +68,7 @@ function extractAllImagePaths(product) {
   return out;
 }
 
-/** Загрузка НОВЫХ файлов (если есть) в /uploads/products и сбор всех URL в порядке галереи */
+/** Загрузка новых файлов (если есть) и сбор URL-ов */
 async function buildUrlsFromGallery(gallery) {
   const newFiles = gallery.filter((g) => g.file instanceof File);
   let uploaded = [];
@@ -90,7 +84,7 @@ async function buildUrlsFromGallery(gallery) {
     if (!resp.ok || !data?.ok) {
       throw new Error(data?.message || "Не удалось загрузить изображения");
     }
-    uploaded = Array.isArray(data.files) ? data.files : []; // [{originalUrl, thumbUrl}]
+    uploaded = Array.isArray(data.files) ? data.files : [];
   }
 
   let take = 0;
@@ -109,6 +103,18 @@ async function buildUrlsFromGallery(gallery) {
   return urls;
 }
 
+/** Надёжный slugify */
+function slugifyTitle(raw) {
+  if (!raw) return "";
+  let s = transliterate(String(raw)).toLowerCase();
+  s = s.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  s = s.replace(/&/g, " and ");
+  s = s.replace(/[^a-z0-9]+/g, "-");
+  s = s.replace(/-+/g, "-").replace(/^-|-$/g, "");
+  if (s.length > 120) s = s.slice(0, 120).replace(/-+$/g, "");
+  return s;
+}
+
 const EditProductForm = ({ product, setProduct }) => {
   const [form] = Form.useForm();
 
@@ -121,7 +127,7 @@ const EditProductForm = ({ product, setProduct }) => {
   // контент
   const [contentHtml, setContentHtml] = useState(product?.content || "");
 
-  // ГАЛЕРЕЯ [{ uid, url?, file?, preview?, raw? }]
+  // ГАЛЕРЕЯ
   const [gallery, setGallery] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -130,7 +136,6 @@ const EditProductForm = ({ product, setProduct }) => {
     const j = await r.json();
     if (j?.ok) setCats(j.items || []);
   };
-  // возвращаем список, чтобы сразу найти subId
   const loadSubs = async (catId) => {
     if (!catId) {
       setSubs([]);
@@ -148,12 +153,9 @@ const EditProductForm = ({ product, setProduct }) => {
     if (j?.ok) setBrands(j.items || []);
   };
 
-  useEffect(() => {
-    loadCats();
-    loadBrands();
-  }, []);
+  useEffect(() => { loadCats(); loadBrands(); }, []);
 
-  // ===== ИНИЦИАЛИЗАЦИЯ ГАЛЕРЕИ =====
+  // Инициализация галереи и контента
   useEffect(() => {
     const ordered = extractAllImagePaths(product);
     const initialGallery = ordered.map((raw, i) => ({
@@ -165,12 +167,12 @@ const EditProductForm = ({ product, setProduct }) => {
     setContentHtml(product?.content || "");
   }, [product]);
 
-  // ===== ИНИЦИАЛИЗАЦИЯ INFO НЕЗАВИСИМО ОТ СПРАВОЧНИКОВ =====
+  // INFO отдельно
   useEffect(() => {
     form.setFieldsValue({ info: toInfoText(product?.info) });
   }, [product, form]);
 
-  // ===== ОТЛОЖЕННАЯ ИНИЦИАЛИЗАЦИЯ CATEGORY/SUB/BRAND =====
+  // Отложенная инициализация справочников
   useEffect(() => {
     (async () => {
       if (!product || !cats.length || !brands.length) return;
@@ -201,7 +203,7 @@ const EditProductForm = ({ product, setProduct }) => {
 
   // Удаление существующей картинки на бэке
   const handleRemoveExisting = async (rawPath) => {
-    await deleteOneImage(product.id, rawPath);
+    try { await deleteOneImage(product.id, rawPath); } catch {}
   };
 
   const onFinish = async (values) => {
@@ -210,7 +212,7 @@ const EditProductForm = ({ product, setProduct }) => {
 
       const urls = await buildUrlsFromGallery(gallery);
       if (urls.length === 0) {
-        message.error("Добавьте хотя бы одно изображение товара");
+        toastWarning("Добавьте хотя бы одно изображение товара", "Недостаточно данных");
         setSaving(false);
         return;
       }
@@ -223,18 +225,15 @@ const EditProductForm = ({ product, setProduct }) => {
       const brand = brands.find((b) => b.id === values.brandId);
 
       const infoArray = values.info
-        ? values.info
-            .split("\n")
-            .map((item) => {
-              const [property, ...valueParts] = item.trim().split(":");
-              const value = valueParts.join(":").trim();
-              if (!property) return null;
-              return { property, value };
-            })
-            .filter(Boolean)
+        ? values.info.split("\n").map((item) => {
+            const [property, ...valueParts] = item.trim().split(":");
+            const value = valueParts.join(":").trim();
+            if (!property) return null;
+            return { property, value };
+          }).filter(Boolean)
         : [];
 
-      const titleLink = transliterate(values.title).replace(/\s+/g, "-").toLowerCase();
+      const titleLink = slugifyTitle(values.title);
 
       const fd = new FormData();
       fd.append("title", values.title);
@@ -258,7 +257,8 @@ const EditProductForm = ({ product, setProduct }) => {
       fd.append("content", contentHtml || "");
       fd.append("banner", values.banner || false);
       fd.append("discounts", values.discounts || false);
-      fd.append("povsednevnaya", values.povsednevnaya || false);
+      // UI: popular → БД: povsednevnaya
+      fd.append("povsednevnaya", values.popular || false);
       fd.append("recommended", values.recommended || false);
 
       fd.append("thumbnailUrl", thumbnailUrl);
@@ -266,15 +266,17 @@ const EditProductForm = ({ product, setProduct }) => {
       fd.append("info", JSON.stringify(infoArray));
 
       const res = await updateOneProduct(product.id, fd);
-      if (res) {
-        message.success(res?.message || "Продукт обновлён");
+      if (res?.ok) {
+        toastSuccess(res?.message || "Продукт обновлён");
         form.resetFields();
-        setProduct({});
+        setProduct(null);
         setGallery([]);
+      } else {
+        toastError(res?.message || "Не удалось обновить продукт");
       }
     } catch (e) {
       console.error(e);
-      message.error("Ошибка при обновлении продукта");
+      toastError("Ошибка при обновлении продукта");
     } finally {
       setSaving(false);
     }
@@ -283,10 +285,14 @@ const EditProductForm = ({ product, setProduct }) => {
   const confirmDelete = async () => {
     try {
       const data = await deleteOneProduct(product.id);
-      message.success(data);
-      setProduct({});
-    } catch {
-      message.error("Ошибка при удалении товара");
+      const msg = typeof data === "string" ? data : (data?.message || "Продукт удалён");
+      toastSuccess(msg);
+      form.resetFields();
+      setProduct(null);
+      setGallery([]);
+    } catch (e) {
+      console.error(e);
+      toastError("Ошибка при удалении товара");
     }
   };
 
@@ -307,9 +313,9 @@ const EditProductForm = ({ product, setProduct }) => {
         rating: product?.rating,
         banner: product?.banner,
         discounts: product?.discounts,
-        povsednevnaya: product?.povsednevnaya,
+        // ⬇️ UI-значение «Популярные» берём из product.povsednevnaya
+        popular: product?.povsednevnaya,
         recommended: product?.recommended,
-        // info выставляется отдельно эффектом, чтобы не ждать справочники
       }}
     >
       <Form.Item label="Название" name="title" rules={[{ required: true, message: "Введите название продукта" }]}>
@@ -338,7 +344,7 @@ const EditProductForm = ({ product, setProduct }) => {
 
       <Form.Item label="Категория" name="categoryId" rules={[{ required: true, message: "Выберите категорию" }]}>
         <Select
-          options={catOptions}
+          options={cats.map((c) => ({ label: c.name, value: c.id }))}
           placeholder="Выберите категорию"
           onChange={async (val) => {
             setCategoryId(val);
@@ -352,7 +358,7 @@ const EditProductForm = ({ product, setProduct }) => {
 
       <Form.Item label="Подкатегория" name="subCategoryId" rules={[{ required: true, message: "Выберите подкатегорию" }]}>
         <Select
-          options={subOptions}
+          options={subs.map((s) => ({ label: s.name, value: s.id }))}
           placeholder="Выберите подкатегорию"
           showSearch
           optionFilterProp="label"
@@ -362,7 +368,7 @@ const EditProductForm = ({ product, setProduct }) => {
 
       <Form.Item label="Бренд" name="brandId">
         <Select
-          options={brandOptions}
+          options={brands.map((b) => ({ label: b.name, value: b.id }))}
           placeholder="Выберите бренд (аниме)"
           allowClear
           showSearch
@@ -374,7 +380,7 @@ const EditProductForm = ({ product, setProduct }) => {
         <InputNumber min={0} max={5} step={0.1} />
       </Form.Item>
 
-      {/* === ГАЛЕРЕЯ С ПЕРЕТАСКИВАНИЕМ === */}
+      {/* ГАЛЕРЕЯ */}
       <div className="py-6">
         <p className="font-medium mb-2">Галерея (перетаскивание, первое — главное)</p>
         <SortableUpload
@@ -403,8 +409,9 @@ const EditProductForm = ({ product, setProduct }) => {
         <Checkbox>Добавить товар на главную</Checkbox>
       </Form.Item>
 
-      <Form.Item label="Повседневные" name="povsednevnaya" valuePropName="checked">
-        <Checkbox>Добавить товар на главную</Checkbox>
+      {/* ⬇️ Было «Повседневные», стало «Популярные» */}
+      <Form.Item label="Популярные" name="popular" valuePropName="checked">
+        <Checkbox>Показывать в популярном</Checkbox>
       </Form.Item>
 
       <Form.Item label="Рекомендуемые" name="recommended" valuePropName="checked">
@@ -415,11 +422,23 @@ const EditProductForm = ({ product, setProduct }) => {
         <Popconfirm
           title="Удалить товар"
           description="Вы точно хотите удалить товар?"
-          onConfirm={confirmDelete}
+          onConfirm={async () => {
+            try {
+              const data = await deleteOneProduct(product.id);
+              const msg = typeof data === "string" ? data : (data?.message || "Продукт удалён");
+              toastSuccess(msg);
+              form.resetFields();
+              setProduct(null);
+              setGallery([]);
+            } catch (e) {
+              console.error(e);
+              toastError("Ошибка при удалении товара");
+            }
+          }}
           okText="Да"
           cancelText="Нет"
         >
-          <Button danger size="small">Удалить товар</Button>
+          <Button danger size="small" htmlType="button">Удалить товар</Button>
         </Popconfirm>
       </div>
 

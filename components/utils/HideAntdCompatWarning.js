@@ -1,40 +1,30 @@
-// /components/utils/HideAntdCompatWarning.jsx
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 /**
- * Глушим ТОЛЬКО предупреждение совместимости antd с React 19,
- * без рекурсий и утечек. Работает один раз на страницу.
+ * Фильтруем только предупреждение совместимости antd с React 19 через console.warn.
+ * Не трогаем console.error, чтобы не ловить рекурсию дев-оверлея.
+ * Патч — глобальный и выполняется один раз на страницу/HMR-сессию.
  */
 export default function HideAntdCompatWarning() {
-  const patched = useRef(false);
-
   useEffect(() => {
-    if (patched.current) return;
-    patched.current = true;
+    if (typeof window === "undefined") return;
 
-    // фиксируем оригинальные методы ДО переопределения
+    // Глобовый флаг, чтобы не патчить повторно (учитывает StrictMode/HMR)
+    if (window.__ANTD_WARN_PATCHED__) return;
+    window.__ANTD_WARN_PATCHED__ = true;
+
     const origWarn = console.warn.bind(console);
-    const origError = console.error.bind(console);
-
     const filter = (args) =>
       typeof args?.[0] === "string" && args[0].includes("[antd: compatible]");
 
     console.warn = (...args) => {
-      if (filter(args)) return; // фильтруем только это предупреждение
+      if (filter(args)) return; // глушим только это предупреждение
       origWarn(...args);
     };
 
-    console.error = (...args) => {
-      if (filter(args)) return; // если antd шлёт через error — тоже глушим
-      origError(...args);
-    };
-
-    return () => {
-      console.warn = origWarn;
-      console.error = origError;
-    };
+    // ВАЖНО: не делаем cleanup — иначе StrictMode откатит патч
   }, []);
 
   return null;

@@ -1,4 +1,3 @@
-// /prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -94,7 +93,7 @@ model Brand {
 model Product {
   id                 Int          @id @default(autoincrement())
   title              String
-  description        String       @db.Text   // <-- БЫЛО String, СТАЛО TEXT (чинит P2000)
+  description        String       @db.Text
   price              Float
   discountPercentage Float
   rating             Float
@@ -106,8 +105,8 @@ model Product {
   subcategory        String
 
   // Изображения/контент
-  thumbnail          String       // здесь храним ОДИН url превью (строка)
-  images             Json         // массив объектов [{url, sort}]
+  thumbnail          String
+  images             Json
   info               Json
 
   article            String?      @db.VarChar(64)
@@ -139,7 +138,15 @@ model Product {
   brandRel           Brand?       @relation(fields: [brandId], references: [id])
   brandId            Int?
 
+  // Существующие индексы по связям
   @@index([categoryId])
   @@index([subCategoryId])
   @@index([brandId])
+
+  // 🔥 Индексы для быстрого поиска/фильтров
+  @@index([title])
+  @@index([article])
+  @@index([brand])
+  @@index([category])
+  @@index([subcategory])
 }

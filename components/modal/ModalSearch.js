@@ -1,107 +1,178 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Modal, Input } from "antd";
-import { searchProduct } from "@/http/productsAPI";
+"use client";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
-const { Search } = Input;
+const abs = (u) =>
+  /^https?:\/\//i.test(u || "")
+    ? u
+    : `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/,"")}${u?.startsWith("/") ? "" : "/"}${u || ""}`;
 
-const ModalSearch = ({ modalVisible, setModalVisible }) => {
-	const [searchTerm, setSearchTerm] = useState('');
-	const [searchResults, setSearchResults] = useState([]);
-	const [loading, setLoading] = useState(false);
-	const [searching, setSearching] = useState(false);
-	const [timer, setTimer] = useState(null);
+export default function ModalSearch({ modalVisible, setModalVisible }) {
+  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState([]);
+  const timer = useRef(null);
 
-	const emailInput = useCallback((inputElement) => {
-		if (inputElement) {
-			inputElement.focus();
-		}
-	}, []);
+  useEffect(() => {
+    if (!modalVisible) {
+      setQ("");
+      setItems([]);
+      setLoading(false);
+    }
+  }, [modalVisible]);
 
-	const handleSearch = async (value) => {
-		try {
-			setLoading(true);
-			setSearching(true);
-			const searchData = await searchProduct({ searchTerm: value });
-			setSearchResults(searchData);
-		} catch (error) {
-			console.error('Ошибка при выполнении поиска:', error);
-		} finally {
-			setLoading(false);
-			setSearching(false); // Установить состояние для скрытия "Поиск..."
-		}
-	};
+  // дебаунс 300мс
+  useEffect(() => {
+    if (!modalVisible) return;
+    if (timer.current) clearTimeout(timer.current);
+    if (!q || q.trim().length < 1) { setItems([]); return; }
 
-	const handleChange = (e) => {
-		const value = e.target.value;
-		setSearchTerm(value);
-		if (timer) {
-			clearTimeout(timer);
-		}
-		if (value.trim() !== '') {
-			setTimer(setTimeout(() => handleSearch(value), 500));
-		} else {
-			setSearchResults([]);
-		}
-	};
+    timer.current = setTimeout(async () => {
+      try {
+        setLoading(true);
+        const r = await fetch(`/api/product/search?q=${encodeURIComponent(q.trim())}`);
+        const j = await r.json();
+        setItems(Array.isArray(j?.items) ? j.items : []);
+      } catch {
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
 
-	const onCancel = () => {
-		setModalVisible(false)
-		setSearchResults([])
-		setSearchTerm('')
-	}
+    return () => timer.current && clearTimeout(timer.current);
+  }, [q, modalVisible]);
 
-	return (
-		<div>
-			<Modal
-				title="Поиск товара"
-				open={modalVisible}
-				onCancel={onCancel}
-				footer={null}
-			>
-				<Search
-					ref={emailInput}
-					placeholder="Введите название товара"
-					value={searchTerm}
-					onChange={handleChange}
-					allowClear
-					loading={loading}
-				/>
-				{(searching && searchResults.length === 0) && (
-					<p className="mt-10">Поиск...</p>
-				)}
-				{(!loading && !searching && searchResults.length === 0 && searchTerm && searchResults.length === 0) && (
-					<p className="mt-10">Продукты не найдены</p>
-				)}
-				{(searchResults.length > 0 || loading) && (
-					<>
-						<div className='divider' />
-						<div className='mt-5'>
-							<ul className=''>
-								{searchResults.map(el => (
-									<li className='mb-3' key={el.id}>
-										<Link
-											href={`${process.env.NEXT_PUBLIC_BASE_URL}/${el.category}/${el.subcategory}/${el.titleLink}`}
-											className='flex'
-										>
-											<div className='mr-2'>
-												<img
-													src={`${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${JSON.parse(el.thumbnail)[0].image}`}
-													alt={el.title}
-													className="w-8 h-8"
-												/>
-											</div>
-											{el.title}
-										</Link>
-									</li>
-								))}
-							</ul>
-						</div>
-					</>
-				)}
-			</Modal>
-		</div>
-	);
-};
+  const grouped = useMemo(() => {
+    // Категория → Подкатегория → товары[]
+    const map = new Map();
+    for (const it of items) {
+      const cKey = it.categoryValue || "other";
+      const sKey = it.subcategoryValue || "other";
+      if (!map.has(cKey)) {
+        map.set(cKey, {
+          categoryValue: cKey,
+          categoryName: it.categoryName || cKey,
+          sub: new Map(),
+        });
+      }
+      const cat = map.get(cKey);
+      if (!cat.sub.has(sKey)) {
+        cat.sub.set(sKey, {
+          subcategoryValue: sKey,
+          subcategoryName: it.subcategoryName || sKey,
+          products: [],
+        });
+      }
+      cat.sub.get(sKey).products.push(it);
+    }
+    return Array.from(map.values()).map((cat) => ({
+      ...cat,
+      sub: Array.from(cat.sub.values()),
+    }));
+  }, [items]);
 
-export default ModalSearch;
+  return (
+    <dialog id="search_modal" className={`modal ${modalVisible ? "modal-open" : ""}`}>
+      <div className="modal-box max-w-5xl">
+        <form method="dialog">
+          <button
+            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+            onClick={() => setModalVisible(false)}
+            aria-label="Закрыть поиск"
+          >
+            ✕
+          </button>
+        </form>
+
+        <h3 className="font-semibold text-lg mb-3">Поиск товара</h3>
+
+        <input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Название, артикул, категория, подкатегория…"
+          className="input input-bordered w-full"
+        />
+
+        {loading ? (
+          <div className="mt-6 text-sm text-gray-500">Ищем…</div>
+        ) : !q ? (
+          <div className="mt-6 text-sm text-gray-500">Начните вводить запрос</div>
+        ) : items.length === 0 ? (
+          <div className="mt-6 text-sm text-gray-500">Ничего не найдено</div>
+        ) : (
+          <div className="mt-5 max-h-[60vh] overflow-y-auto pr-1">
+            {grouped.map((cat) => (
+              <div key={cat.categoryValue} className="mb-7">
+                {/* Заголовок категории — переход в категорию */}
+                <div className="flex items-baseline justify-between">
+                  <Link
+                    href={`/${encodeURIComponent(cat.categoryValue)}`}
+                    className="text-lg font-semibold hover:underline"
+                    onClick={() => setModalVisible(false)}
+                  >
+                    {cat.categoryName}
+                  </Link>
+                </div>
+
+                {cat.sub.map((s) => (
+                  <div key={`${cat.categoryValue}/${s.subcategoryValue}`} className="mt-3">
+                    {/* Заголовок подкатегории — переход в подкатегорию */}
+                    <Link
+                      href={`/${encodeURIComponent(cat.categoryValue)}/${encodeURIComponent(s.subcategoryValue)}`}
+                      className="text-base font-medium text-gray-700 hover:underline"
+                      onClick={() => setModalVisible(false)}
+                    >
+                      {s.subcategoryName}
+                    </Link>
+
+                    {/* СПИСОК товаров */}
+                    <ul className="mt-2 divide-y divide-gray-200 border rounded-lg bg-white">
+                      {s.products.map((p) => (
+                        <li key={p.id} className="hover:bg-gray-50 transition">
+                          <Link
+                            href={`/${encodeURIComponent(p.categoryValue)}/${encodeURIComponent(p.subcategoryValue)}/${encodeURIComponent(p.titleLink)}`}
+                            className="flex items-center gap-3 p-2"
+                            onClick={() => setModalVisible(false)}
+                          >
+                            {/* Миниатюра */}
+                            <div className="w-12 h-12 rounded overflow-hidden border bg-white shrink-0">
+                              {p.thumbnail ? (
+                                <img
+                                  src={abs(p.thumbnail)}
+                                  alt={p.title}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gray-100" />
+                              )}
+                            </div>
+
+                            {/* Текстовая часть */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{p.title}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                Арт.: {p.article || "—"} · Остаток: {p.stock ?? 0}
+                              </p>
+                            </div>
+
+                            {/* Цена справа */}
+                            <div className="text-right whitespace-nowrap text-sm font-semibold pl-2">
+                              {Number(p.price || 0).toFixed(2)} BYN
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </dialog>
+  );
+}

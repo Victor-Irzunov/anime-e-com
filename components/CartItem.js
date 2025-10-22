@@ -1,4 +1,3 @@
-// /components/CartItem.js
 import Link from "next/link";
 import { RiAddFill, RiSubtractFill } from "react-icons/ri";
 
@@ -39,7 +38,9 @@ function CartItem({ product, onDelete, onDecrement, onIncrement }) {
 
       <div className="flex flex-col flex-1 mt-4 xs:mt-0">
         <h2 className="text-lg">
-          <Link href={`${BASE}/${product.category}/${product.subcategory}/${product.titleLink}`}>{product.title}</Link>
+          <Link href={`${BASE}/${product.category}/${product.subcategory}/${product.titleLink}`}>
+            {product.title}
+          </Link>
         </h2>
         <div className="text-sm text-gray-400">
           <p>Описание: {product.description}</p>
@@ -47,7 +48,10 @@ function CartItem({ product, onDelete, onDecrement, onIncrement }) {
         </div>
 
         <div className="flex items-center gap-3 mt-5">
-          <button className="btn btn-xs text-red-500 uppercase btn-ghost font-light" onClick={handleDelete}>
+          <button
+            className="btn btn-xs text-red-500 uppercase btn-ghost font-light"
+            onClick={handleDelete}
+          >
             Удалить
           </button>
         </div>
@@ -58,9 +62,15 @@ function CartItem({ product, onDelete, onDecrement, onIncrement }) {
           {(product.price * product.quantity).toFixed(2)} руб
         </strong>
         <span className="font-medium text-gray-500 line-through">
-          {((product.price ? (product.price / 100) * product.discountPercentage + product.price : 0) * product.quantity).toFixed(2)} руб
+          {(
+            (product.price ? (product.price / 100) * product.discountPercentage + product.price : 0) *
+            product.quantity
+          ).toFixed(2)}{" "}
+          руб
         </span>
-        <span className="text-green-500 text-sm font-semibold">{product.discountPercentage}%</span>
+        <span className="text-green-500 text-sm font-semibold">
+          {product.discountPercentage}%
+        </span>
 
         <div className="join pt-5">
           <button className="join-item btn btn-sm px-2 border border-gray-300" onClick={handleDecrement}>

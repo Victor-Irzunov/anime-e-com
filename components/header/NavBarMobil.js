@@ -20,7 +20,7 @@ const NavBarMobil = ({
             <input id="my-drawer" type="checkbox" className="drawer-toggle" checked={isDrawerOpen} onChange={toggleDrawer} />
             <div className="drawer-content">
               <label htmlFor="my-drawer" className="hover:opacity-70 transition-opacity flex items-center gap-2 cursor-pointer">
-                <RiMenu4Fill fontSize={35} />
+                <RiMenu4Fill color="#6B7181" fontSize={35} />
               </label>
             </div>
             <div className="drawer-side">
@@ -60,11 +60,11 @@ const NavBarMobil = ({
             </div>
           </div>
 
-          <div className="join w-16 ml-4 xz:hidden xy:block">
+          {/* <div className="join w-16 ml-4 xz:hidden xy:block">
             <Link href={"/"} className="flex items-center gap-2 text-secondary text-xl font-semibold">
               <RiShoppingBasket2Fill fontSize={30} />
             </Link>
-          </div>
+          </div> */}
         </div>
 
         <div className="navbar-center text-gray-500"></div>
@@ -106,7 +106,7 @@ const NavBarMobil = ({
           <Link href="/korzina" className="flex flex-col items-center text-gray-500 rounded-lg pr-1  ml-2 hover:opacity-80 transition-opacity" onClick={closeDrawer}>
             <div className="indicator">
               {dataApp.dataKorzina.length ? (
-                <span className="indicator-item px-1 text-xs font-semibold badge badge-secondary">{dataApp.dataKorzina.length}</span>
+                 <span className="indicator-item px-1 w-4 h-4 text-[10px] font-semibold badge badge-secondary">{dataApp.dataKorzina.length}</span>
               ) : null}
               <RiShoppingCartLine fontSize={30} />
             </div>

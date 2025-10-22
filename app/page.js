@@ -1,27 +1,32 @@
 import CategoriesGrid from "@/components/home/CategoriesGrid";
+import HeroCarousel from "@/components/home/HeroCarousel.client";
 import NewArrivals from "@/components/home/NewArrivals";
 import PopularProducts from "@/components/home/PopularProducts";
 import VoprosOtvet from "@/components/home/VoprosOtvet";
+import Image from "next/image";
 
 // /app/page.jsx
 export default function Home() {
   return (
     <main className="">
-      <div className="container mx-auto">
-        <div className="my-10">
-          <h1 className="sd:text-4xl xz:text-2xl font-semibold">
+
+      {/* Хиро-слайдер */}
+      <section className="sd:block xz:hidden container mx-auto sd:pt-6 xz:pt-3 sd:px-0 xz:px-3">
+        <HeroCarousel />
+      </section>
+
+      <section className="container mx-auto">
+        <div className="sd:my-16 xz:my-7">
+          <h1 className="sd:text-5xl xz:text-4xl font-semibold heading-gradient text-center">
             Интернет-магазин Аниме в Минске
           </h1>
         </div>
-      </div>
-
-
-
+      </section>
       <CategoriesGrid />
 
       {/* Секция: описание магазина */}
-      <section className="container mx-auto sd:py-16 xz:py-10 sd:px-0 xz:px-3">
-        <h2 className="sd:text-5xl xz:text-3xl font-normal mb-6">
+      <section className="container mx-auto sd:py-16 xz:py-10 sd:px-0 xz:px-3 relative z-10">
+        <h2 className="sd:text-3xl xz:text-xl font-normal mb-6">
           Аниме магазин «Акани» — Минск
         </h2>
         <div className="prose max-w-none sd:text-base xz:text-sm leading-relaxed">
@@ -49,6 +54,14 @@ export default function Home() {
             показываем обновления ассортимента и анонсы поставок.
           </p>
         </div>
+
+        <Image
+          src='/images/anime/anime.webp'
+          alt='Аниме фигурка'
+          width={300} height={300}
+          className="absolute sd:top-1/2 xz:top-0 sd:right-0 xz:-right-8 -z-10 sd:w-[300px] xz:w-[200px]"
+        />
+       
       </section>
 
       {/* Секция: адреса и карты */}

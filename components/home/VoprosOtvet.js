@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 // /components/home/VoprosOtvet.jsx
 const questionsAndAnswers = [
   {
@@ -54,7 +56,7 @@ const questionsAndAnswers = [
 
 const VoprosOtvet = () => {
   return (
-    <section className="py-16" id="voprosotvet">
+    <section className="py-16 relative z-10" id="voprosotvet">
       <div className="container mx-auto px-0 sd:px-12">
         <h2 className="sd:text-5xl xz:text-3xl font-normal">Часто задаваемые вопросы (FAQ)</h2>
         <div className="mt-9">
@@ -70,6 +72,13 @@ const VoprosOtvet = () => {
           ))}
         </div>
       </div>
+
+       <Image
+          src='/images/anime/anime-2.webp'
+          alt='Аниме фигурка'
+          width={200} height={200}
+          className="absolute top-0 left-8 -z-10"
+        />
     </section>
   );
 };

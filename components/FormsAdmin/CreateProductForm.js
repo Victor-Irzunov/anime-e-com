@@ -9,6 +9,7 @@ import CKeditor from "@/components/Editor/CKeditor";
 
 const { TextArea } = Input;
 
+/** Загрузка галереи (как было) */
 async function uploadGalleryIfNeeded(gallery) {
   const newFiles = gallery.filter((g) => g.file instanceof File);
   if (newFiles.length === 0) {
@@ -36,6 +37,18 @@ async function uploadGalleryIfNeeded(gallery) {
     }
   }
   return result.filter(Boolean);
+}
+
+/** Надёжный slugify для titleLink */
+function slugifyTitle(raw) {
+  if (!raw) return "";
+  let s = transliterate(String(raw)).toLowerCase();                 // в латиницу
+  s = s.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");          // без диакритики
+  s = s.replace(/&/g, " and ");                                     // & → and
+  s = s.replace(/[^a-z0-9]+/g, "-");                                // всё лишнее → -
+  s = s.replace(/-+/g, "-").replace(/^-|-$/g, "");                  // схлопнуть дефисы
+  if (s.length > 120) s = s.slice(0, 120).replace(/-+$/g, "");
+  return s;
 }
 
 const CreateProductForm = () => {
@@ -86,7 +99,9 @@ const CreateProductForm = () => {
       const sub = subs.find((s) => s.id === values.subCategoryId);
       const brand = brands.find((b) => b.id === values.brandId);
 
-      const titleLink = transliterate(values.title).replace(/\s+/g, "-").toLowerCase();
+      // ✅ генерация слага без кавычек/пробелов/и т.п.
+      const titleLink = slugifyTitle(values.title);
+
       const imagesArr = urls.map((url, idx) => ({ url, sort: idx }));
       const thumbnailUrl = imagesArr[0]?.url || "";
 
@@ -109,7 +124,7 @@ const CreateProductForm = () => {
       // NEW: артикль
       fd.append("article", values.article || "");
 
-      // дубли строками
+      // дубли строками (для обратной совместимости и простых фильтров)
       fd.append("category", cat?.name || "");
       fd.append("subcategory", sub?.name || "");
       fd.append("brand", brand?.name || "");
@@ -119,15 +134,16 @@ const CreateProductForm = () => {
       fd.append("subCategoryId", values.subCategoryId ?? "");
       fd.append("brandId", values.brandId ?? "");
 
-      // контент
+      // контент/SEO
       fd.append("content", values.content);
       fd.append("rating", values.rating || 0);
       fd.append("titleLink", titleLink);
 
-      // флаги
+      // ФЛАГИ
       fd.append("banner", values.banner || false);
       fd.append("discounts", values.discounts || false);
-      fd.append("povsednevnaya", values.povsednevnaya || false);
+      // UI: popular → БД: povsednevnaya
+      fd.append("povsednevnaya", values.popular || false);
       fd.append("recommended", values.recommended || false);
 
       // медиа/инфо
@@ -179,7 +195,6 @@ const CreateProductForm = () => {
         <InputNumber min={0} />
       </Form.Item>
 
-      {/* NEW: Артикль */}
       <Form.Item label="Артикль (SKU)" name="article">
         <Input placeholder="Например: AKN-00123" />
       </Form.Item>
@@ -221,6 +236,7 @@ const CreateProductForm = () => {
         <InputNumber min={0} max={5} step={0.1} />
       </Form.Item>
 
+      {/* ГАЛЕРЕЯ */}
       <div className="py-12 sd:px-28 xz:px-1.5">
         <p className="font-medium mb-2">Галерея (перетаскивание, первое — главное)</p>
         <SortableUpload value={gallery} onChange={setGallery} label="Загрузить изображения" />
@@ -248,8 +264,9 @@ const CreateProductForm = () => {
         <Checkbox>Добавить товар на главную</Checkbox>
       </Form.Item>
 
-      <Form.Item label="Повседневные" name="povsednevnaya" valuePropName="checked">
-        <Checkbox>Добавить товар на главную</Checkbox>
+      {/* ⬇️ БЫЛО «Повседневные», стало «Популярные» */}
+      <Form.Item label="Популярные" name="popular" valuePropName="checked">
+        <Checkbox>Показывать в популярном</Checkbox>
       </Form.Item>
 
       <Form.Item label="Рекомендуемые" name="recommended" valuePropName="checked">
