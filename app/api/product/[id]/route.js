@@ -1,4 +1,4 @@
-// /app/api/product/[id]/route.js
+// /app/api/product/[id]/route.js — ГОТОВЫЙ ФАЙЛ (исправленное получение params через await)
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import multer from "multer";
@@ -40,11 +40,8 @@ function safeStr(v, max = 1024) {
 // Нормализуем относительный путь для БД
 function normalizeRel(u) {
   if (!u) return "";
-  // убираем BASE, если прислали абсолютный URL
-  // (на сервере BASE, как правило, не задан, но оставим проверку на будущее)
   const base = process.env.NEXT_PUBLIC_BASE_URL || "";
   if (base && u.startsWith(base)) u = u.slice(base.length);
-  // кладём всё под /uploads/products
   if (!u.startsWith("/uploads/")) return `/uploads/products/${u.replace(/^\/+/, "")}`;
   return u;
 }
@@ -69,8 +66,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 /* ========= GET: один товар ========= */
-export async function GET(_req, { params: { id } }) {
+export async function GET(_req, ctx) {
   try {
+    const { id } = await ctx.params; // ← важно: await
     const item = await prisma.product.findUnique({ where: { id: Number(id) } });
     if (!item) return new NextResponse("Продукт по id не найден", { status: 404 });
     return NextResponse.json(item);
@@ -81,8 +79,10 @@ export async function GET(_req, { params: { id } }) {
 }
 
 /* ========= PUT: обновление ========= */
-export async function PUT(req, { params: { id } }) {
+export async function PUT(req, ctx) {
   try {
+    const { id } = await ctx.params; // ← важно: await
+
     // Сначала прогоняем через multer — даже если файлов нет, ошибок не будет.
     await new Promise((resolve, reject) => {
       upload.any()(req, {}, (err) => (err ? reject(err) : resolve()));
@@ -217,8 +217,10 @@ export async function PUT(req, { params: { id } }) {
   - DELETE /api/product/[id]?name=/uploads/products/xxx.webp   -> удалить ОДНО изображение
   - DELETE /api/product/[id]                                    -> удалить товар и все локальные файлы
 */
-export async function DELETE(req, { params: { id } }) {
+export async function DELETE(req, ctx) {
   try {
+    const { id } = await ctx.params; // ← важно: await
+
     const { searchParams } = new URL(req.url);
     const name = searchParams.get("name"); // может быть 'xxx.webp' или '/uploads/products/xxx.webp'
 

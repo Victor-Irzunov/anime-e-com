@@ -1,7 +1,7 @@
 // /components/ImgProductDetails.js
 "use client";
 import Link from "next/link";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { RiAddFill, RiCheckboxCircleFill, RiShieldCheckFill, RiSubtractFill } from "react-icons/ri";
 import { BsChevronLeft, BsChevronRight } from "react-icons/bs";
 import FormOrder from "./Form/FormOrder";
@@ -9,9 +9,19 @@ import { MyContext } from "@/contexts/MyContextProvider";
 
 const ImgProductDetails = ({ product }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false); // full-screen gallery
   const [quantity, setQuantity] = useState(1);
   const { updateState } = useContext(MyContext);
+
+  // dialog refs + timer
+  const cartDialogRef = useRef(null);  // my_modal_1
+  const quickBuyDialogRef = useRef(null); // my_modal_3
+  const autoCloseTimerRef = useRef(null);
+
+  useEffect(() => () => {
+    // cleanup timer on unmount
+    if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+  }, []);
 
   const imagesArr = Array.isArray(product.images)
     ? product.images
@@ -34,8 +44,15 @@ const ImgProductDetails = ({ product }) => {
     else existingCart.push({ id: product.id, title: product.title, category: product.category, quantity });
     localStorage.setItem("cart", JSON.stringify(existingCart));
     updateState();
-    document.getElementById("my_modal_1").showModal();
-    setTimeout(() => document.getElementById("my_modal_1").close(), 4000);
+
+    // безопасно показать модалку
+    cartDialogRef.current?.showModal?.();
+
+    // авто-закрытие через 4с (если компонент ещё в DOM)
+    if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    autoCloseTimerRef.current = setTimeout(() => {
+      if (cartDialogRef.current?.open) cartDialogRef.current.close();
+    }, 4000);
   };
 
   const handlePrevImage = () => setSelectedImageIndex((i) => (i - 1 + imagesArr.length) % imagesArr.length);
@@ -53,12 +70,14 @@ const ImgProductDetails = ({ product }) => {
         <div className="flex items-center gap-3 mt-6 overflow-x-auto sd:w-lg xz:w-auto">
           <div className="flex">
             {imagesArr.map((img, idx) => {
-              const src = (img.url || img.image || "");
+              const src = img.url || img.image || "";
               const thumb = src.startsWith("http") ? src : `${process.env.NEXT_PUBLIC_BASE_URL || ""}${src}`;
               return (
                 <div
                   key={`${src}-${idx}`}
-                  className="w-28 h-28 rounded border border-gray-300 mx-1 overflow-hidden cursor-pointer"
+                  className={`w-28 h-28 rounded border mx-1 overflow-hidden cursor-pointer ${
+                    idx === selectedImageIndex ? "border-primary" : "border-gray-300"
+                  }`}
                   onClick={() => setSelectedImageIndex(idx)}
                 >
                   <img src={thumb} alt="" className="w-full h-full object-cover" />
@@ -117,7 +136,7 @@ const ImgProductDetails = ({ product }) => {
         </div>
 
         <div className="flex gap-3">
-          <button className="btn btn-secondary capitalize" onClick={() => document.getElementById("my_modal_3").showModal()}>
+          <button className="btn btn-secondary capitalize" onClick={() => quickBuyDialogRef.current?.showModal?.()}>
             Быстрая покупка
           </button>
           <button className="btn btn-accent capitalize text-white" onClick={handleAddToCart}>
@@ -131,41 +150,42 @@ const ImgProductDetails = ({ product }) => {
         </div>
       </div>
 
+      {/* полноэкранная галерея */}
       {isModalOpen && (
         <div className="fixed inset-0 z-10 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black opacity-50" onClick={() => setIsModalOpen(false)} />
+          <div className="fixed inset-0 bg-black/50" onClick={() => setIsModalOpen(false)} />
           <div className="relative bg-white p-8 rounded-lg max-w-2xl w-full cursor-pointer">
             <img src={imageUrlAt(selectedImageIndex)} alt="" className="w-full h-full object-cover rounded-lg" />
-            <div className="absolute top-1/2 -translate-y-1/2 left-4 cursor-pointer" onClick={handlePrevImage}>
+            <button className="absolute top-1/2 -translate-y-1/2 left-4" onClick={handlePrevImage}>
               <BsChevronLeft className="text-3xl text-gray-700 hover:text-gray-900" />
-            </div>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 cursor-pointer" onClick={handleNextImage}>
+            </button>
+            <button className="absolute top-1/2 -translate-y-1/2 right-4" onClick={handleNextImage}>
               <BsChevronRight className="text-3xl text-gray-700 hover:text-gray-900" />
-            </div>
-            <div className="absolute top-4 right-4 cursor-pointer" onClick={() => setIsModalOpen(false)}>
+            </button>
+            <button className="absolute top-4 right-4" onClick={() => setIsModalOpen(false)} aria-label="Закрыть">
               <span className="text-3xl font-bold">✕</span>
-            </div>
+            </button>
           </div>
         </div>
       )}
 
       {/* модалки */}
-      <dialog id="my_modal_3" className="modal">
+      <dialog ref={quickBuyDialogRef} id="my_modal_3" className="modal">
         <div className="modal-box">
           <form method="dialog">
-            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Закрыть">✕</button>
           </form>
           <p className="font-bold text-lg">Ваш заказ: {product.title}</p>
-          <p className="font-bold text-base">Cумма заказа: {product.price.toFixed(2)} руб</p>
+          <p className="font-bold text-base">Сумма заказа: {product.price.toFixed(2)} руб</p>
           <p className="py-4 text-xs">Заполните, пожалуйста, данные формы, чтобы быстро оформить заказ.</p>
           <div className="modal-action">
-            <FormOrder product={product} closeModalOrder={() => document.getElementById("my_modal_3").close()} />
+            <FormOrder product={product} closeModalOrder={() => quickBuyDialogRef.current?.close?.()} />
           </div>
           <p className="py-4 text-sm">После получения вашего заказа мы перезвоним вам для подтверждения.</p>
         </div>
       </dialog>
 
-      <dialog id="my_modal_1" className="modal">
+      <dialog ref={cartDialogRef} id="my_modal_1" className="modal">
         <div className="modal-box">
           <p className="font-bold text-lg mb-3">Товар добавлен в корзину</p>
           <p className="font-bold text-lg">{product.title}</p>

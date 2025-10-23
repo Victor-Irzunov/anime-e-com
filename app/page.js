@@ -5,81 +5,242 @@ import NewArrivals from "@/components/home/NewArrivals";
 import PopularProducts from "@/components/home/PopularProducts";
 import VoprosOtvet from "@/components/home/VoprosOtvet";
 import Image from "next/image";
+import Script from "next/script";
+import BtnComp from "@/components/btn/BtnComp"; // добавил
 
-// /app/page.jsx
+// === SEO / AEO ===
+export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://akani.by"),
+  title: "Аниме фигурки в Минске — магазин «Акани» | Новинки, предзаказы, мерч",
+  description:
+    "«Акани» — аниме-магазин в Минске: фигурки, мягкие игрушки, мерч по топ-тайтлам. Самовывоз из ТЦ, курьер по Минску, почта по РБ. Предзаказы, акции и новинки.",
+  keywords:
+    "аниме магазин Минск, аниме фигурки Минск, фигурки аниме, мерч аниме, мягкие игрушки аниме, предзаказ фигурок Минск",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Аниме фигурки в Минске — «Акани»",
+    description:
+      "Фигурки, мерч и мягкие игрушки по любимым тайтлам. Самовывоз и доставка.",
+    url: "/",
+    siteName: "Акани",
+    images: [{ url: "/og/og-akani.jpg", width: 1200, height: 630, alt: "Аниме магазин Акани" }],
+    locale: "ru_RU",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Аниме фигурки в Минске — «Акани»",
+    description: "Новинки, предзаказы и мерч. Самовывоз и доставка по РБ.",
+    images: ["/og/og-akani.jpg"],
+  },
+  robots: { index: true, follow: true },
+};
+
 export default function Home() {
   return (
-    <main className="">
+    <main className="relative overflow-hidden">
+      {/* Фоновая «неон-аура» */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(60% 40% at 20% 10%, rgba(39,233,226,0.25), transparent 60%), radial-gradient(50% 40% at 80% 0%, rgba(28,126,236,0.20), transparent 65%), radial-gradient(60% 60% at 50% 80%, rgba(39,233,226,0.15), transparent 70%)",
+        }}
+      />
 
-      {/* Хиро-слайдер */}
-      <section className="sd:block xz:hidden container mx-auto sd:pt-6 xz:pt-3 sd:px-0 xz:px-3">
-        <HeroCarousel />
-      </section>
+     
+      <section className="container mx-auto sd:px-0 xz:px-3 sd:pt-10 xz:pt-5">
+        <div
+          className="grid lg:grid-cols-2 gap-8 items-center rounded-3xl p-5 md:p-10 relative border"
+          style={{ borderColor: "#1C7EEC22", boxShadow: "0 0 40px #1C7EEC22, inset 0 0 30px #27E9E233" }}
+        >
+         
+          <div>
+            <div className='flex sd:justify-start xz:justify-center'>
+              <span className="inline-block text-[10px] sd:text-xs tracking-widest uppercase mb-3 px-3 py-1 rounded-full"
+                style={{ background: "#1C7EEC10", color: "#1C7EEC" }}>
+                Аниме-магазин в Минске
+              </span>
+            </div>
 
-      <section className="container mx-auto">
-        <div className="sd:my-16 xz:my-7">
-          <h1 className="sd:text-5xl xz:text-4xl font-semibold heading-gradient text-center">
-            Интернет-магазин Аниме в Минске
-          </h1>
+         
+            <h1 className="font-extrabold leading-[1.1] text-[clamp(28px,7vw,56px)] xz:text-center sd:text-left">
+              <span className="block"
+                style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", WebkitBackgroundClip: "text", color: "transparent" }}>
+                Аниме фигурки в Минске
+              </span>
+              <span className="block mt-1 text-gray-600 text-[clamp(18px,5vw,34px)]">
+                Новинки, мерч и предзаказы
+              </span>
+            </h1>
+
+            <p className="mt-4 sd:text-lg xz:text-sm text-gray-700  max-w-prose">
+              Фигурки по топ-тайтлам, мягкие игрушки, коврики, постеры и аксессуары.
+              Самовывоз из ТЦ, курьер по Минску, почта по Беларуси. Бережная упаковка и быстрая связь.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                href="#new"
+                className="px-6 py-3 xz:w-full sd:w-auto rounded-xl text-center font-semibold shadow hover:scale-[1.02] transition active:scale-95"
+                style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", color: "#001B2F" }}
+              >
+                Смотреть новинки
+              </a>
+              <a
+                href="#addresses"
+                className="px-6 py-3 xz:w-full sd:w-auto rounded-xl text-center font-semibold border"
+                style={{ borderColor: "#1C7ECAA", color: "#1C7EEC" }}
+              >
+                Адреса магазинов
+              </a>
+            </div>
+
+            <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              {[
+                "Оригинальные и качественные реплики",
+                "Предзаказы редких позиций",
+                "Самовывоз и быстрая доставка",
+              ].map((t, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="mt-1 inline-block w-2.5 h-2.5 rounded-full" style={{ background: i % 2 ? "#1C7EEC" : "#27E9E2" }} />
+                  <span className="opacity-90">{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Правая колонка */}
+          <div className="relative">
+            <div className="sd:block xz:hidden">
+              <HeroCarousel />
+            </div>
+            <div className="sd:hidden xz:block">
+              <Image
+                src="/images/banner/banner.webp"
+                alt="Аниме витрина — фигурки и мерч"
+                width={900}
+                height={700}
+                sizes="(max-width: 640px) 100vw, 640px"
+                className="rounded-xl"
+                priority
+              />
+            </div>
+            <div aria-hidden className="absolute -z-10 inset-0 blur-3xl opacity-60"
+              style={{ background: "radial-gradient(50% 50% at 70% 30%, #1C7EEC55, transparent 70%)" }} />
+          </div>
         </div>
       </section>
-      <CategoriesGrid />
 
-      {/* Секция: описание магазина */}
-      <section className="container mx-auto sd:py-16 xz:py-10 sd:px-0 xz:px-3 relative z-10">
-        <h2 className="sd:text-3xl xz:text-xl font-normal mb-6">
-          Аниме магазин «Акани» — Минск
-        </h2>
+      {/* ==== КАТЕГОРИИ ==== */}
+      <section className="container mx-auto sd:py-14 xz:py-8 sd:px-0 xz:px-3">
+        <SectionTitle title="Категории" subtitle="Фигурки, мягкие игрушки, мерч по любимым тайтлам" />
+        <CategoriesGrid />
+      </section>
+
+      {/* ==== ПРОМО-БЛОК О ПРЕДЗАКАЗАХ ==== */}
+      <section className="container mx-auto sd:px-0 xz:px-3">
+        <div className="rounded-3xl p-5 md:p-10 relative overflow-hidden border" style={{ borderColor: "#27E9E244" }}>
+          <div aria-hidden className="absolute -z-10 -right-20 -top-20 w-[320px] sd:w-[420px] h-80 sd:h-[420px] rounded-full blur-3xl"
+            style={{ background: "radial-gradient(50% 50% at 50% 50%, #27E9E2, transparent 70%)" }} />
+          <div className="md:flex items-center gap-8">
+            <div className="md:w-2/3">
+              <h2 className="text-[clamp(22px,5.2vw,40px)] font-semibold">Предзаказ редких фигурок</h2>
+              <p className="mt-3 text-gray-600 ">
+                Ищете конкретного персонажа? Оформите предзаказ — подскажем сроки поставки,
+                закрепим позицию и сообщим о прибытии.
+              </p>
+              <div className="mt-6 flex sd:flex-row xz:flex-col gap-3">
+                {/* Модалка */}
+                <BtnComp
+                  title="Оформить предзаказ"
+                  index="preorder"
+                  name="Заявка на предзаказ фигурки"
+                  color="bg-gradient-to-r from-[#27E9E2] to-[#1C7EEC] text-[#001B2F]"
+                  small
+                  img
+                />
+                <a
+                  href="https://t.me/akanianime"
+                  target="_blank"
+                  rel="noopener"
+                  className="px-6 py-3 rounded-xl font-semibold border text-center"
+                  style={{ borderColor: "#27E9E2AA", color: "#27E9E2" }}
+                >
+                  Telegram-канал
+                </a>
+              </div>
+            </div>
+            {/* на мобиле скрываем картинку, чтобы не было «битого» превью, если файла нет */}
+            <div className="sd:w-1/3 mt-6 sd:mt-0">
+              <Image
+                src="/images/anime/preorder.webp"
+                alt="Предзаказ аниме фигурок"
+                width={500}
+                height={400}
+                sizes="(max-width: 1024px) 50vw, 500px"
+                className="rounded-2xl mx-auto"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==== НОВИНКИ ==== */}
+      <section id="new" className="container mx-auto sd:py-14 xz:py-8">
+        <SectionTitle title="Новинки" subtitle="Самые свежие поступления — не пропустите!" accent="cyan" />
+        <NewArrivals />
+      </section>
+
+      {/* ==== ПОПУЛЯРНОЕ ==== */}
+      <section className="container mx-auto sd:py-10 xz:py-6">
+        <SectionTitle title="Популярные товары" subtitle="То, что чаще всего выбирают наши покупатели" accent="blue" />
+        <PopularProducts />
+      </section>
+
+      {/* ==== ОПИСАНИЕ (AEO) ==== */}
+      <section className="container mx-auto sd:py-16 xz:py-10 sd:px-0 xz:px-3 relative">
+        <SectionTitle title="«Акани» — аниме магазин в Минске" subtitle="Фигурки, мерч и подарки для фанатов" />
         <div className="prose max-w-none sd:text-base xz:text-sm leading-relaxed">
           <p>
-            «Акани» — сеть аниме-магазинов в г. Минске. У нас представлен широкий
-            ассортимент <strong>аниме фигурок</strong> (как статичных, так и экшен),
-            аксессуаров и сопутствующего мерча по популярным тайтлам и отдельным
-            играм. Мы регулярно пополняем ассортимент <em>мягких игрушек</em> и
-            трендовых товаров — актуальные поступления появляются на сайте и в
-            наших офлайн-точках.
-          </p>
-          <p>
-            Часть ассортимента показана на сайте: вы можете заказать онлайн с
-            доставкой или оформить самовывоз. Мы стараемся держать конкурентные
-            цены, внимательно упаковываем каждый заказ и оперативно связываемся
-            по вопросам предзаказов и наличия.
+            У нас широкий ассортимент <strong>аниме фигурок</strong> (статичные и экшен),
+            <em>мягких игрушек</em> и трендового мерча по популярным тайтлам и играм.
+            Заказывайте онлайн с доставкой или забирайте в наших точках самовывоза.
           </p>
           <ul>
             <li>Самовывоз из наших магазинов в Минске.</li>
-            <li>Доставка по городу курьером.</li>
-            <li>Доставка по Беларуси почтой.</li>
+            <li>Курьер по городу и почта по Беларуси.</li>
+            <li>Оперативная связь по предзаказам и наличию.</li>
           </ul>
-          <p>
-            Подписывайтесь на наш Telegram-канал — там мы в реальном времени
-            показываем обновления ассортимента и анонсы поставок.
-          </p>
+          <p>Подписывайтесь на Telegram — там первыми публикуем новинки и анонсы поставок.</p>
         </div>
 
+        {/* декоративную картинку выключаем на xz, чтобы не было «битого» значка */}
         <Image
-          src='/images/anime/anime.webp'
-          alt='Аниме фигурка'
-          width={300} height={300}
-          className="absolute sd:top-1/2 xz:top-0 sd:right-0 xz:-right-8 -z-10 sd:w-[300px] xz:w-[200px]"
+          src="/images/anime/anime.webp"
+          alt="Аниме фигурка"
+          width={320}
+          height={320}
+          sizes="320px"
+          className="absolute sd:block xz:hidden sd:top-6 sd:-right-6 opacity-70 pointer-events-none"
+          loading="lazy"
         />
-
       </section>
 
-      {/* Секция: адреса и карты */}
-      <section className="container mx-auto sd:py-10 xz:py-8 sd:px-0 xz:px-3">
-        <h2 className="sd:text-4xl xz:text-2xl font-normal mb-6">Адреса магазинов</h2>
-
+      {/* ==== АДРЕСА ==== */}
+      <section id="addresses" className="container mx-auto sd:py-14 xz:py-8 sd:px-0 xz:px-3">
+        <SectionTitle title="Адреса магазинов" subtitle="Самовывоз и консультации в точках" />
         <div className="grid md:grid-cols-2 grid-cols-1 gap-6">
           <MapCard
             title="Аниме Игрушки Минск — ТЦ «Минск Сити Молл»"
             address="ул. Толстого, 1 — 3 этаж, большой островок"
-            // Тот же embed, что был:
             embedUrl="https://www.google.com/maps?q=%D0%9C%D0%B8%D0%BD%D1%81%D0%BA,+%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B3%D0%BE+1&output=embed"
-            placeholderSrc="/images/maps/minsk-city-mall.webp" // сделай скрин и положи сюда
-            mode="click" // или "visible", если хочешь грузить при прокрутке
+            placeholderSrc="/images/maps/minsk-city-mall.webp"
+            mode="click"
             height={320}
           />
-
           <MapCard
             title="Аниме Игрушки Минск — ТЦ «Магнит»"
             address="пр-т Дзержинского, 106 (1 этаж, около бокового входа)"
@@ -91,10 +252,68 @@ export default function Home() {
         </div>
       </section>
 
-      <NewArrivals />
-      <PopularProducts />
-
       <VoprosOtvet />
+
+      {/* ==== JSON-LD ==== */}
+      <Script id="ld-localbusiness" type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Store",
+            name: "Акани — аниме магазин",
+            image: ["/og/og-akani.jpg"],
+            url: process.env.NEXT_PUBLIC_SITE_URL || "https://akani.by",
+            telephone: "+375 (00) 000-00-00",
+            address: { "@type": "PostalAddress", addressLocality: "Минск", addressCountry: "BY" },
+            sameAs: ["https://t.me/akanianime"],
+          }),
+        }}
+      />
+      <Script id="ld-faq" type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: "Где в Минске можно купить аниме фигурки?",
+                acceptedAnswer: { "@type": "Answer", text: "В магазинах сети «Акани» и в нашем интернет-магазине. Доступны самовывоз и доставка." },
+              },
+              {
+                "@type": "Question",
+                name: "Осуществляете ли вы доставку по Беларуси?",
+                acceptedAnswer: { "@type": "Answer", text: "Да. По Минску — курьером, по Беларуси — почтой. Обычно 1–3 рабочих дня." },
+              },
+            ],
+          }),
+        }}
+      />
     </main>
+  );
+}
+
+/** Заголовок секции */
+function SectionTitle({ title, subtitle, accent }) {
+  const accentColor = accent === "blue" ? "#1C7EEC" : accent === "cyan" ? "#27E9E2" : "#27E9E2";
+  return (
+    <div className="mb-8">
+      <div className="inline-flex items-center gap-2 mb-3">
+        <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: accentColor }} />
+        <span className="text-[10px] sd:text-xs uppercase tracking-widest" style={{ color: accentColor }}>
+          раздел
+        </span>
+      </div>
+      <h2 className="font-semibold text-[clamp(22px,6vw,48px)]">
+        <span style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", WebkitBackgroundClip: "text", color: "transparent" }}>
+          {title}
+        </span>
+      </h2>
+      {subtitle && (
+        <p className="mt-2 text-gray-600 sd:text-base xz:text-sm max-w-prose">
+          {subtitle}
+        </p>
+      )}
+    </div>
   );
 }

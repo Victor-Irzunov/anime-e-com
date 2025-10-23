@@ -27,7 +27,7 @@ const page = () => {
             <p className="text-sm sm:text-base leading-7 ">
               1.2. Настоящая Политика Оператора в отношении обработки персональных данных применяется
               ко всей информации, которую Оператор может получить о посетителях веб-сайта
-              <a href="https://slomdom.by/" className="underline text-primary">slomdom.by</a>.
+              <a href="https://akani.by/" className="underline text-primary">akani.by</a>.
             </p>
 
             <h2 className="text-2xl font-semibold mt-6">2. Основные понятия, используемые в Политике</h2>
@@ -39,7 +39,7 @@ const page = () => {
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               2.3. Веб-сайт — совокупность графических и информационных материалов, а также программ для ЭВМ и баз данных, обеспечивающих их доступность в сети интернет по сетевому адресу
-              <a href="https://slomdom.by/" className="underline text-primary"> slomdom.by</a>;
+              <a href="https://akani.by/" className="underline text-primary"> akani.by</a>;
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               2.4. Информационная система персональных данных — совокупность содержащихся в базах данных персональных данных и обеспечивающих их обработку информационных технологий и технических средств;
@@ -62,11 +62,11 @@ const page = () => {
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               2.8. Персональные данные — любая информация, относящаяся прямо или косвенно к определенному или определяемому Пользователю веб-сайта
-              <a href="https://slomdom.by/" className="underline text-primary"> slomdom.by</a>;
+              <a href="https://akani.by/" className="underline text-primary"> akani.by</a>;
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               2.9. Пользователь — любой посетитель веб-сайта
-              <a href="https://slomdom.by/" className="underline text-primary"> slomdom.by</a>;
+              <a href="https://akani.by/" className="underline text-primary"> akani.by</a>;
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               2.10. Предоставление персональных данных — действия, направленные на раскрытие персональных данных определенному лицу или определенному кругу лиц;
@@ -109,7 +109,7 @@ const page = () => {
               4.1. Цель обработки персональных данных Пользователя — информирование Пользователя посредством отправки электронных писем;
               заключение, исполнение и прекращение гражданско-правовых договоров; установление с Пользователем обратной связи,
               включая направление уведомлений, запросов, касающихся использования сайта
-              <a href="https://slomdom.by/" className="underline text-primary">slomdom.by</a>, оказания услуг, обработки запросов и заявок от Пользователя.
+              <a href="https://akani.by/" className="underline text-primary">akani.by</a>, оказания услуг, обработки запросов и заявок от Пользователя.
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               4.2. Также Оператор имеет право направлять Пользователю уведомления о новых продуктах и услугах,
@@ -153,14 +153,14 @@ const page = () => {
             <p className="text-sm sm:text-base leading-7 ">
               6.3. В случае выявления неточностей в персональных данных, Пользователь может актуализировать их самостоятельно,
               путем направления Оператору уведомления на адрес электронной почты Оператора
-              <a href="mailto:aliaksei.kuptsevich@yandex.by" className="underline text-primary"> aliaksei.kuptsevich@yandex.by</a>
+              <a href="mailto:Art2945909@yandex.ru" className="underline text-primary"> Art2945909@yandex.ru</a>
               с пометкой «Актуализация персональных данных».
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               6.4. Срок обработки персональных данных является неограниченным. Пользователь может в любой момент отозвать
               свое согласие на обработку персональных данных, направив Оператору уведомление посредством электронной почты
               на электронный адрес Оператора
-              <a href="mailto:aliaksei.kuptsevich@yandex.by" className="underline text-primary"> aliaksei.kuptsevich@yandex.by</a>
+              <a href="mailto:Art2945909@yandex.ru" className="underline text-primary"> Art2945909@yandex.ru</a>
               с пометкой «Отзыв согласия на обработку персональных данных».
             </p>
 
@@ -181,7 +181,7 @@ const page = () => {
             <p className="text-sm sm:text-base leading-7 ">
               8.1. Пользователь может получить любые разъяснения по интересующим вопросам, касающимся обработки его персональных данных,
               обратившись к Оператору с помощью электронной почты
-              <a href="mailto:aliaksei.kuptsevich@yandex.by" className="underline text-primary">aliaksei.kuptsevich@yandex.by</a>.
+              <a href="mailto:Art2945909@yandex.ru" className="underline text-primary"> Art2945909@yandex.ru</a>.
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               8.2. В данном документе будут отражены любые изменения политики обработки персональных данных Оператором.
@@ -189,7 +189,7 @@ const page = () => {
             </p>
             <p className="text-sm sm:text-base leading-7 ">
               8.3. Актуальная версия Политики в свободном доступе расположена в сети Интернет по адресу:
-              <a href="https://slomdom.by/politika/" className="underline text-primary"> https://slomdom.by/politika/</a>.
+              <a href="https://akani.by/politika/" className="underline text-primary"> https://akani.by/politika/</a>.
             </p>
           </div>
 

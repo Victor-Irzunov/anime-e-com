@@ -32,8 +32,8 @@ function withBase(url) {
   const path = url.startsWith("/")
     ? url
     : url.startsWith("uploads/")
-    ? `/${url}`
-    : `/uploads/${url}`;
+      ? `/${url}`
+      : `/uploads/${url}`;
   return `${base}${path}`;
 }
 
@@ -48,10 +48,10 @@ function ratioToPadding(ratio = "4/3") {
 function toSlug(input = "") {
   const s = String(input).toLowerCase();
   const map = {
-    а:"a", б:"b", в:"v", г:"g", д:"d", е:"e", ё:"yo", ж:"zh", з:"z", и:"i", й:"y",
-    к:"k", л:"l", м:"m", н:"n", о:"o", п:"p", р:"r", с:"s", т:"t", у:"u", ф:"f",
-    х:"h", ц:"c", ч:"ch", ш:"sh", щ:"shch", ы:"y", э:"e", ю:"yu", я:"ya",
-    ь:"", ъ:"", ї:"i", і:"i", ґ:"g", є:"e",
+    а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo", ж: "zh", з: "z", и: "i", й: "y",
+    к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f",
+    х: "h", ц: "c", ч: "ch", ш: "sh", щ: "shch", ы: "y", э: "e", ю: "yu", я: "ya",
+    ь: "", ъ: "", ї: "i", і: "i", ґ: "g", є: "e",
   };
   const translit = s.replace(/[а-яёіїґє]/g, ch => map[ch] ?? ch);
   return translit
@@ -115,57 +115,107 @@ export default function ProductCardCompact({
     <Link
       href={href}
       prefetch={false}
-      className="group rounded-lg bg-white border border-gray-300 hover:border-primary hover:shadow-sm transition flex flex-col h-full p-3"
+      className="group block h-full"
       aria-label={title || "Товар"}
       title={title}
       itemScope
       itemType="https://schema.org/Product"
     >
-      {/* Изображение с единым соотношением сторон */}
+      {/* Градиентная рамка с неоновым свечением */}
       <div
-        className="relative w-full overflow-hidden rounded-md bg-gray-100"
-        style={{ paddingBottom: ratioToPadding(imageRatio) }} // например 4/3 => 75%
+        className="rounded-xl p-[1.2px] transition-transform duration-200 will-change-transform"
+        style={{
+          background:
+            "linear-gradient(135deg,#27E9E2 0%,#1C7EEC 100%)",
+          boxShadow:
+            "0 10px 24px rgba(28,126,236,0.12), inset 0 0 0 rgba(0,0,0,0)",
+        }}
       >
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt={title || ""}
-            itemProp="image"
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gray-200" />
-        )}
+        <div className="rounded-[11px] bg-white dark:bg-neutral-900">
+          {/* Изображение с единым соотношением сторон */}
+          <div
+            className="relative w-full overflow-hidden rounded-t-[11px] bg-gray-100 dark:bg-neutral-800"
+            style={{ paddingBottom: ratioToPadding(imageRatio) }}
+          >
+            {imgSrc ? (
+              <img
+                src={imgSrc}
+                alt={title || ""}
+                itemProp="image"
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gray-200 dark:bg-neutral-700" />
+            )}
+
+            {/* Тонкое неоновое свечение сверху */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-16 opacity-70"
+              style={{
+                background:
+                  "linear-gradient(180deg,rgba(39,233,226,0.35),transparent)",
+              }}
+            />
+          </div>
+
+          {/* Контент */}
+          <div className="p-3">
+            {/* Цена — читаемая, с лёгким градиентом текста */}
+            <strong
+              className="block font-semibold text-lg leading-snug"
+              itemProp="offers"
+              itemScope
+              itemType="https://schema.org/Offer"
+              style={{
+                background:
+                  "linear-gradient(90deg,#27E9E2,#1C7EEC)",
+                WebkitBackgroundClip: "text",
+                color: "transparent",
+              }}
+            >
+              <span itemProp="price" className="sd:text-base xz:text-sm">
+                {Number(price || 0).toFixed(2)}
+              </span>{" "}
+              <span
+                itemProp="priceCurrency"
+                className="sd:text-base xz:text-xs"
+                content="BYN"
+                style={{ WebkitTextFillColor: "currentcolor", color: "inherit" }}
+              >
+                руб.
+              </span>
+              <meta itemProp="availability" content="https://schema.org/InStock" />
+            </strong>
+
+            {/* Заголовок — фикс 2 строки */}
+            <h3
+              className="mt-1 text-gray-700 dark:text-gray-300 font-normal leading-tight sd:text-sm xz:text-xs"
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+                minHeight: "2.6em",
+              }}
+              itemProp="name"
+            >
+              {title}
+            </h3>
+          </div>
+        </div>
       </div>
 
-      {/* Цена (одна строка) */}
-      <strong
-        className="mt-3 block font-semibold text-gray-900 text-lg leading-snug"
-        itemProp="offers"
-        itemScope
-        itemType="https://schema.org/Offer"
-      >
-        <span itemProp="price" className="sd:text-base xz:text-sm">{Number(price || 0).toFixed(2)}</span>{" "}
-        <span itemProp="priceCurrency" className="sd:text-base xz:text-xs" content="BYN">руб.</span>
-        <meta itemProp="availability" content="https://schema.org/InStock" />
-      </strong>
-
-      {/* Заголовок: фиксируем высоту в 2 строки */}
-      <h3
-        className="mt-1 text-gray-500 font-normal leading-tight sd:text-sm xz:text-xs"
-        style={{
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-          minHeight: "2.6em", // ≈ 2 строки
-        }}
-        itemProp="name"
-      >
-        {title}
-      </h3>
+      {/* Ховер-эффекты карточки (внешний контейнер) */}
+      <style jsx>{`
+        .group:hover > div {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 28px rgba(28, 126, 236, 0.18),
+            0 0 32px rgba(39, 233, 226, 0.18);
+        }
+      `}</style>
 
       <meta itemProp="category" content={catSlug} />
     </Link>

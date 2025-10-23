@@ -58,12 +58,12 @@ export default function HeroCarousel() {
         draggable
       >
         {slides.map((s, i) => (
-          <div key={i} className="relative w-full">
+          <div key={i} className="relative w-full min-h-[220px] sd:min-h-[360px] xl:min-h-[480px]">
             {/* Баннер 21:9 с адаптивной высотой */}
-            <div className="relative w-full overflow-hidden"
+            <div className="relative w-full "
                  style={{ aspectRatio: "21 / 9" }}>
               {/* На малых экранах делаем повыше за счёт minHeight */}
-              <div className="absolute inset-0 min-h-[220px] md:min-h-[360px] xl:min-h-[480px]">
+              <div className="absolute inset-0 min-h-[220px] sd:min-h-[360px] xl:min-h-[480px]">
                 <Image
                   src={s.src}
                   alt={s.alt}

@@ -1,5 +1,6 @@
-// /app/super-admin/page.jsx
+// /app/super-admin/page.jsx — ПОЛНОСТЬЮ ЗАМЕНИ
 "use client";
+import Link from "next/link";
 import CreateProductForm from "@/components/FormsAdmin/CreateProductForm";
 import EditProductForm from "@/components/FormsAdmin/EditProductForm";
 import GetProductForm from "@/components/FormsAdmin/GetProductForm";
@@ -21,6 +22,16 @@ const page = () => {
         <div className="container mx-auto">
           <div className="text-center">
             <h1 className="sd:text-3xl xz:text-xl uppercase">Страница администратора</h1>
+
+            {/* 🔗 Быстрые ссылки */}
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link href="/super-admin/orders" className="btn btn-primary btn-sm">
+                Отслеживание заказов
+              </Link>
+              <Link href="/zakazy" className="btn btn-outline btn-sm">
+                Заказы (вид от пользователя)
+              </Link>
+            </div>
           </div>
 
           <div className="mt-10">
@@ -69,6 +80,13 @@ const page = () => {
                 <GetProductForm setIsActive={setIsActive} />
                 <div className="mt-10">{isActive ? <EditProductForm /> : null}</div>
               </div>
+            </div>
+
+            {/* 🔗 Дублирующая ссылка внизу */}
+            <div className="mt-10 text-center">
+              <Link href="/super-admin/orders" className="btn btn-primary">
+                Перейти к отслеживанию заказов
+              </Link>
             </div>
           </div>
         </div>

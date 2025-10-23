@@ -1,21 +1,25 @@
+// /prisma/schema.prisma — ДОБАВИТЬ ПОЛЯ (если ещё не добавлены) И ВЫНести URL в .env
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider     = "mysql"
-  url          = "mysql://root:Qaz123-321@localhost:3306/e-com"
+  url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
 
 model User {
-  id        Int         @id @default(autoincrement())
-  email     String      @unique
-  password  String
-  isAdmin   Boolean
-  userData  UserData?
-  orders    OrderData[]
-  createdAt DateTime    @default(now())
+  id                     Int         @id @default(autoincrement())
+  email                  String      @unique
+  password               String
+  isAdmin                Boolean     @default(false)
+  isGuest                Boolean     @default(true)        // NEW
+  passwordResetToken     String?     @unique               // NEW
+  passwordResetTokenExp  DateTime?                         // NEW
+  userData               UserData?
+  orders                 OrderData[]
+  createdAt              DateTime    @default(now())
 }
 
 model UserData {
@@ -30,32 +34,41 @@ model UserData {
   createdAt DateTime @default(now())
 }
 
+enum OrderStatus {
+  NEW
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELED
+  RETURNED
+  NOT_DELIVERED
+}
+
 model OrderData {
-  id         Int      @id @default(autoincrement())
-  user       User     @relation(fields: [userId], references: [id])
+  id         Int          @id @default(autoincrement())
+  user       User         @relation(fields: [userId], references: [id])
   userId     Int
   orderItems Json
   address    String
   phone      String
   message    String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime     @default(now())
+
+  // 🔽 НОВЫЕ ПОЛЯ
+  status     OrderStatus  @default(NEW)
+  email      String?      @db.VarChar(255)
 }
 
 model Category {
   id            Int            @id @default(autoincrement())
   name          String         @unique
   value         String         @unique
-
-  // SEO
   h1            String?        @db.VarChar(255)
   contentHtml   String?        @db.Text
-
-  // Картинка категории (webp в /public/uploads)
   image         String?        @db.VarChar(255)
-
   subcategories SubCategory[]
   products      Product[]
-
   createdAt     DateTime       @default(now())
 }
 
@@ -63,21 +76,13 @@ model SubCategory {
   id           Int        @id @default(autoincrement())
   name         String
   value        String
-
-  // SEO
   h1           String?    @db.VarChar(255)
   contentHtml  String?    @db.Text
-
-  // Картинка подкатегории (webp в /public/uploads)
   image        String?    @db.VarChar(255)
-
   category     Category   @relation(fields: [categoryId], references: [id])
   categoryId   Int
-
   products     Product[]
-
   createdAt    DateTime   @default(now())
-
   @@unique([categoryId, value])
   @@index([categoryId])
 }
@@ -98,52 +103,32 @@ model Product {
   discountPercentage Float
   rating             Float
   stock              Int
-
-  // Старые строковые поля (оставляем для обратной совместимости)
   brand              String
   category           String
   subcategory        String
-
-  // Изображения/контент
   thumbnail          String
   images             Json
   info               Json
-
   article            String?      @db.VarChar(64)
-
-  // Контент карточки товара (CKEditor) — SEO-текст
   content            String       @db.Text
-
-  // Доп. SEO для товара
   metaTitle          String?      @db.VarChar(255)
   metaDesc           String?      @db.VarChar(512)
   h1                 String?      @db.VarChar(255)
-
-  // Ссылка для деталей товара
   titleLink          String       @default("") @unique
-
-  // Флаги
   banner             Boolean
   discounts          Boolean
   povsednevnaya      Boolean
   recommended        Boolean
-
   createdAt          DateTime     @default(now())
-
-  // Новые связи (опциональные)
   categoryRel        Category?    @relation(fields: [categoryId], references: [id])
   categoryId         Int?
   subCategoryRel     SubCategory? @relation(fields: [subCategoryId], references: [id])
   subCategoryId      Int?
   brandRel           Brand?       @relation(fields: [brandId], references: [id])
   brandId            Int?
-
-  // Существующие индексы по связям
   @@index([categoryId])
   @@index([subCategoryId])
   @@index([brandId])
-
-  // 🔥 Индексы для быстрого поиска/фильтров
   @@index([title])
   @@index([article])
   @@index([brand])

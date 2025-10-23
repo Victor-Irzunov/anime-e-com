@@ -27,7 +27,7 @@ export default async function CategoriesGrid() {
               <div className="relative z-10 h-full p-6 flex flex-col justify-between text-white">
                 <h3 className="sd:text-4xl xz:text-2xl font-semibold drop-shadow-md">{c.name}</h3>
                 <div>
-                  <Link href={`/${c.value}`} className="btn btn-secondary normal-case">
+                  <Link href={`/${c.value}`} className="btn btn-secondary normal-case rounded-xl">
                     Перейти в каталог
                   </Link>
                 </div>

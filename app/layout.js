@@ -7,7 +7,7 @@ import { MyContextProvider } from "@/contexts/MyContextProvider";
 import "@/lib/antdCompatFlag";
 import ClientRoot from "@/components/ClientRoot";
 
-const SITE = process.env.NEXT_PUBLIC_BASE_URL || "https://example.com";
+const SITE = process.env.NEXT_PUBLIC_BASE_URL || "https://akani.by";
 
 export const metadata = {
   metadataBase: new URL(SITE),

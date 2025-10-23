@@ -10,9 +10,9 @@ export const searchProduct = async ({searchTerm}) => {
 	return data
 }
 
-export const orderProduct = async (orderdata) => {
-	const { data } = await $authHost.post('api/product/order', orderdata)
-	return data
+export async function orderProduct(formData) {
+  const res = await fetch(`/api/product/order`, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('Fail order');
+  return res.json();
 }
-
 

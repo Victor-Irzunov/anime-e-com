@@ -76,3 +76,14 @@ export const newPassword = async (obj) => {
   localStorage.setItem('token_e_com', data.token);
   return jwtDecode(data.token);
 };
+
+
+export async function setPasswordByToken({ token, password }) {
+  const res = await fetch('/api/user/set-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password })
+  });
+  if (!res.ok) throw new Error('Fail set password');
+  return res.json();
+}
