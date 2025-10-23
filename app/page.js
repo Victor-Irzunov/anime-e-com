@@ -1,3 +1,4 @@
+import MapCard from "@/components/common/MapCard";
 import CategoriesGrid from "@/components/home/CategoriesGrid";
 import HeroCarousel from "@/components/home/HeroCarousel.client";
 import NewArrivals from "@/components/home/NewArrivals";
@@ -61,7 +62,7 @@ export default function Home() {
           width={300} height={300}
           className="absolute sd:top-1/2 xz:top-0 sd:right-0 xz:-right-8 -z-10 sd:w-[300px] xz:w-[200px]"
         />
-       
+
       </section>
 
       {/* Секция: адреса и карты */}
@@ -69,38 +70,24 @@ export default function Home() {
         <h2 className="sd:text-4xl xz:text-2xl font-normal mb-6">Адреса магазинов</h2>
 
         <div className="grid md:grid-cols-2 grid-cols-1 gap-6">
-          <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white">
-            <div className="p-4">
-              <h3 className="font-semibold">Аниме Игрушки Минск — ТЦ «Минск Сити Молл»</h3>
-              <p className="text-sm text-gray-600">
-                ул. Толстого, 1 — 3 этаж, большой островок
-              </p>
-            </div>
-            <iframe
-              title="Толстого, 1"
-              className="w-full h-80"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              src="https://www.google.com/maps?q=%D0%9C%D0%B8%D0%BD%D1%81%D0%BA,+%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B3%D0%BE+1&output=embed"
-            />
-          </div>
+          <MapCard
+            title="Аниме Игрушки Минск — ТЦ «Минск Сити Молл»"
+            address="ул. Толстого, 1 — 3 этаж, большой островок"
+            // Тот же embed, что был:
+            embedUrl="https://www.google.com/maps?q=%D0%9C%D0%B8%D0%BD%D1%81%D0%BA,+%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B3%D0%BE+1&output=embed"
+            placeholderSrc="/images/maps/minsk-city-mall.webp" // сделай скрин и положи сюда
+            mode="click" // или "visible", если хочешь грузить при прокрутке
+            height={320}
+          />
 
-          <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white">
-            <div className="p-4">
-              <h3 className="font-semibold">Аниме Игрушки Минск — ТЦ «Магнит»</h3>
-              <p className="text-sm text-gray-600">пр-т Дзержинского, 106</p>
-              <p className="text-xs text-gray-500">
-                1 этаж, магазин около бокового входа
-              </p>
-            </div>
-            <iframe
-              title="Дзержинского, 106"
-              className="w-full h-80"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              src="https://www.google.com/maps?q=%D0%9C%D0%B8%D0%BD%D1%81%D0%BA,+%D0%94%D0%B7%D0%B5%D1%80%D0%B6%D0%B8%D0%BD%D1%81%D0%BA%D0%BE%D0%B3%D0%BE+106&output=embed"
-            />
-          </div>
+          <MapCard
+            title="Аниме Игрушки Минск — ТЦ «Магнит»"
+            address="пр-т Дзержинского, 106 (1 этаж, около бокового входа)"
+            embedUrl="https://www.google.com/maps?q=%D0%9C%D0%B8%D0%BD%D1%81%D0%BA,+%D0%94%D0%B7%D0%B5%D1%80%D0%B6%D0%B8%D0%BD%D1%81%D0%BA%D0%BE%D0%B3%D0%BE+106&output=embed"
+            placeholderSrc="/images/maps/magnit.webp"
+            mode="click"
+            height={320}
+          />
         </div>
       </section>
 

@@ -1,4 +1,4 @@
 User-agent: *
 Disallow: /thank-you
 Disallow: /politika
-Sitemap: https://.by/sitemap.xml
+Sitemap: https://akani.by/sitemap.xml
