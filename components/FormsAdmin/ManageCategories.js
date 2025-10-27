@@ -1,7 +1,16 @@
 // /components/FormsAdmin/ManageCategories.jsx
 "use client";
 import { useEffect, useState } from "react";
-import { Form, Input, Button, Table, message, Popconfirm, Upload, Image as AntImage } from "antd";
+import {
+  Form,
+  Input,
+  Button,
+  Table,
+  message,
+  Popconfirm,
+  Upload,
+  Image as AntImage,
+} from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import CKeditor from "@/components/Editor/CKeditor";
 import Resizer from "react-image-file-resizer";
@@ -41,7 +50,10 @@ export default function ManageCategories() {
   const [form] = Form.useForm();
   const [items, setItems] = useState([]);
   const [contentHtml, setContentHtml] = useState("");
+  const [initialContentHtml, setInitialContentHtml] = useState("");
   const [imageList, setImageList] = useState([]);
+  const [editId, setEditId] = useState(null);
+  const [initialImage, setInitialImage] = useState(null);
 
   const load = async () => {
     const r = await fetch("/api/admin/categories", { cache: "no-store" });
@@ -49,14 +61,19 @@ export default function ManageCategories() {
     if (j?.ok) setItems(j.items);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const onFinish = async (v) => {
     try {
       const fd = new FormData();
       fd.append("name", v.name);
-      if (v.h1) fd.append("h1", v.h1);
-      if (contentHtml) fd.append("contentHtml", contentHtml);
+      fd.append("h1", v.h1 || "");
+
+      if (contentHtml !== initialContentHtml) {
+        fd.append("contentHtml", contentHtml);
+      }
 
       if (imageList.length) {
         const f = imageList[0];
@@ -65,42 +82,85 @@ export default function ManageCategories() {
         }
       }
 
-      const r = await fetch("/api/admin/categories", { method: "POST", body: fd });
+      let url = "/api/admin/categories";
+      let method = "POST";
+
+      if (editId) {
+        url += `?id=${editId}`;
+        method = "PUT";
+      }
+
+      const r = await fetch(url, { method, body: fd });
       const j = await r.json();
       if (j?.ok) {
-        message.success("Категория сохранена");
-        form.resetFields();
-        setContentHtml("");
-        setImageList([]);
+        message.success(editId ? "Категория обновлена" : "Категория сохранена");
+        resetForm();
         load();
       } else {
         message.error(j?.error || "Ошибка");
       }
     } catch (e) {
       console.error(e);
-      message.error("Ошибка сохранения категории");
+      message.error("Ошибка сохранения");
     }
   };
 
+  const resetForm = () => {
+    form.resetFields();
+    setContentHtml("");
+    setInitialContentHtml("");
+    setImageList([]);
+    setInitialImage(null);
+    setEditId(null);
+  };
+
   const remove = async (id) => {
-    const r = await fetch(`/api/admin/categories?id=${id}`, { method: "DELETE" });
+    const r = await fetch(`/api/admin/categories?id=${id}`, {
+      method: "DELETE",
+    });
     const j = await r.json();
-    if (j?.ok) { message.success("Удалено"); load(); }
-    else message.error(j?.error || "Ошибка");
+    if (j?.ok) {
+      message.success("Удалено");
+      load();
+    } else message.error(j?.error || "Ошибка");
+  };
+
+  const startEdit = (rec) => {
+    setEditId(rec.id);
+    form.setFieldsValue({
+      name: rec.name,
+      h1: rec.h1 || "",
+    });
+    setContentHtml(rec.contentHtml || "");
+    setInitialContentHtml(rec.contentHtml || "");
+
+    if (rec.image) {
+      setImageList([
+        {
+          uid: "-1",
+          name: rec.image,
+          url: `/uploads/${rec.image}`,
+        },
+      ]);
+      setInitialImage(rec.image);
+    } else {
+      setImageList([]);
+      setInitialImage(null);
+    }
   };
 
   return (
     <div className="space-y-10">
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        <Form.Item label="Название категории" name="name" rules={[{ required: true }]}>
+        <Form.Item
+          label={editId ? "Редактировать категорию" : "Название категории"}
+          name="name"
+          rules={[{ required: true }]}
+        >
           <Input placeholder="Например: Фигурки" />
         </Form.Item>
 
-        <Form.Item
-          label="H1 (заголовок страницы)"
-          name="h1"
-          tooltip="Например: Аниме фигурки в Минске"
-        >
+        <Form.Item label="H1" name="h1">
           <Input placeholder="Аниме фигурки в Минске" />
         </Form.Item>
 
@@ -111,30 +171,41 @@ export default function ManageCategories() {
             maxCount={1}
             fileList={imageList}
             beforeUpload={async (file) => {
-              // ресайз в WEBP
-              const base64 = await resizeFile(file, 800, 800, 70);
+              const base64 = await resizeFile(file);
               const blobFile = dataURLtoFile(base64, "category.webp");
               if (blobFile.size > MAX_BYTES) {
-                message.error("Изображение после сжатия больше 50KB — уменьшите исходник.");
+                message.error("Изображение после сжатия больше 50KB");
                 return Upload.LIST_IGNORE;
               }
-              setImageList([{ uid: "1", name: blobFile.name, originFileObj: blobFile }]);
+              setImageList([
+                {
+                  uid: "1",
+                  name: blobFile.name,
+                  originFileObj: blobFile,
+                },
+              ]);
               return Upload.LIST_IGNORE;
             }}
-            onRemove={() => { setImageList([]); }}
+            onRemove={() => setImageList([])}
           >
             <Button icon={<UploadOutlined />}>Загрузить изображение</Button>
           </Upload>
         </Form.Item>
 
-        <div className="mb-2 font-semibold">Контент на странице категории (SEO-текст)</div>
+        <div className="mb-2 font-semibold">Контент на странице категории (SEO)</div>
         <CKeditor value={contentHtml} onChange={setContentHtml} />
 
-        <div className='py-4'/>
+        <div className="flex gap-4 py-4">
+          <Button type="primary" htmlType="submit">
+            {editId ? "Сохранить изменения" : "Сохранить"}
+          </Button>
 
-        <Form.Item className="">
-          <Button type="primary" htmlType="submit">Сохранить</Button>
-        </Form.Item>
+          {editId && (
+            <Button danger onClick={resetForm}>
+              Отмена редактирования
+            </Button>
+          )}
+        </div>
       </Form>
 
       <Table
@@ -144,21 +215,30 @@ export default function ManageCategories() {
           { title: "ID", dataIndex: "id", width: 70 },
           { title: "Название", dataIndex: "name" },
           { title: "H1", dataIndex: "h1", render: (t) => t || "-" },
-          { title: "Slug/путь", dataIndex: "value" },
+          { title: "Slug/Путь", dataIndex: "value" },
           {
             title: "Картинка",
             dataIndex: "image",
             render: (img) =>
               img ? (
                 <AntImage src={`/uploads/${img}`} width={60} height={60} alt="cat" />
-              ) : "-",
+              ) : (
+                "-"
+              ),
           },
           {
             title: "Действия",
             render: (_, rec) => (
-              <Popconfirm title="Удалить?" onConfirm={() => remove(rec.id)}>
-                <Button danger size="small">Удалить</Button>
-              </Popconfirm>
+              <div className="flex gap-2">
+                <Button size="small" onClick={() => startEdit(rec)}>
+                  Редактировать
+                </Button>
+                <Popconfirm title="Удалить?" onConfirm={() => remove(rec.id)}>
+                  <Button danger size="small">
+                    Удалить
+                  </Button>
+                </Popconfirm>
+              </div>
             ),
           },
         ]}

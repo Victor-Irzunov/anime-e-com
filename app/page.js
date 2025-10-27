@@ -49,13 +49,11 @@ export default function Home() {
         }}
       />
 
-     
       <section className="container mx-auto sd:px-0 xz:px-3 sd:pt-10 xz:pt-5">
         <div
           className="grid lg:grid-cols-2 gap-8 items-center rounded-3xl p-5 md:p-10 relative border"
           style={{ borderColor: "#1C7EEC22", boxShadow: "0 0 40px #1C7EEC22, inset 0 0 30px #27E9E233" }}
         >
-         
           <div>
             <div className='flex sd:justify-start xz:justify-center'>
               <span className="inline-block text-[10px] sd:text-xs tracking-widest uppercase mb-3 px-3 py-1 rounded-full"
@@ -64,7 +62,6 @@ export default function Home() {
               </span>
             </div>
 
-         
             <h1 className="font-extrabold leading-[1.1] text-[clamp(28px,7vw,56px)] xz:text-center sd:text-left">
               <span className="block"
                 style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", WebkitBackgroundClip: "text", color: "transparent" }}>
@@ -100,7 +97,7 @@ export default function Home() {
             <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
               {[
                 "Оригинальные и качественные реплики",
-                "Предзаказы редких позиций",
+                "Изготовление магнитов и мерча",
                 "Самовывоз и быстрая доставка",
               ].map((t, i) => (
                 <li key={i} className="flex items-start gap-2">
@@ -140,7 +137,7 @@ export default function Home() {
       </section>
 
       {/* ==== ПРОМО-БЛОК О ПРЕДЗАКАЗАХ ==== */}
-      <section className="container mx-auto sd:px-0 xz:px-3">
+      {/* <section className="container mx-auto sd:px-0 xz:px-3">
         <div className="rounded-3xl p-5 md:p-10 relative overflow-hidden border" style={{ borderColor: "#27E9E244" }}>
           <div aria-hidden className="absolute -z-10 -right-20 -top-20 w-[320px] sd:w-[420px] h-80 sd:h-[420px] rounded-full blur-3xl"
             style={{ background: "radial-gradient(50% 50% at 50% 50%, #27E9E2, transparent 70%)" }} />
@@ -152,7 +149,7 @@ export default function Home() {
                 закрепим позицию и сообщим о прибытии.
               </p>
               <div className="mt-6 flex sd:flex-row xz:flex-col gap-3">
-                {/* Модалка */}
+      
                 <BtnComp
                   title="Оформить предзаказ"
                   index="preorder"
@@ -172,7 +169,7 @@ export default function Home() {
                 </a>
               </div>
             </div>
-            {/* на мобиле скрываем картинку, чтобы не было «битого» превью, если файла нет */}
+        
             <div className="sd:w-1/3 mt-6 sd:mt-0">
               <Image
                 src="/images/anime/preorder.webp"
@@ -183,6 +180,86 @@ export default function Home() {
                 className="rounded-2xl mx-auto"
                 loading="lazy"
               />
+            </div>
+          </div>
+        </div>
+      </section> */}
+
+      {/* ==== НОВАЯ СЕКЦИЯ: TELEGRAM ==== */}
+      <section className="container mx-auto sd:py-14 xz:py-8 sd:px-0 xz:px-3">
+        <div className="rounded-3xl p-5 md:p-10 relative overflow-hidden border"
+          style={{ borderColor: "#1C7EEC33", boxShadow: "0 10px 40px #1C7EEC22" }}>
+          {/* фоновые свечения */}
+          <div aria-hidden className="absolute -z-10 -left-28 -top-24 w-[360px] h-[360px] blur-3xl opacity-50 rounded-full"
+            style={{ background: "#27E9E2" }} />
+          <div aria-hidden className="absolute -z-10 -right-28 -bottom-24 w-[360px] h-[360px] blur-3xl opacity-50 rounded-full"
+            style={{ background: "#1C7EEC" }} />
+
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            <div>
+              <SectionTitle
+                title="Наш Telegram-канал"
+                subtitle="Анонсы поставок, редкие предзаказы и скидки — всё появляется здесь раньше всего"
+                accent="cyan"
+              />
+              <p className="text-gray-700 sd:text-base xz:text-sm max-w-prose">
+                Все новинки в режиме реального времени мы выкладываем в наш Telegram-канал! Также
+                можем изготовить на заказ магниты и другой мерч по вашим пожеланиям.
+              </p>
+              <p className="text-gray-700 sd:text-base xz:text-sm max-w-prose">
+                Подписывайтесь, чтобы первыми видеть новинки, участвовать в розыгрышах и ловить промокоды. Мы публикуем живые фото, обзоры и новости магазина.
+              </p>
+
+              <div className="mt-6">
+                <a
+                  href="https://t.me/akanianime"
+                  target="_blank"
+                  rel="noopener"
+                  className="px-6 py-3 rounded-xl font-semibold border inline-flex items-center gap-2"
+                  style={{ borderColor: "#1CB0E9", color: "#1CB0E9" }}
+                >
+              
+                  Telegram-канал
+                  <Image src='/images/svg/telegram.svg' alt='telegram' width={30} height={30} />
+                </a>
+              </div>
+            </div>
+
+            {/* SVG-изображение в фирменных цветах, без внешних файлов */}
+            <div className="relative">
+              <div className="aspect-4/3 w-full rounded-2xl border overflow-hidden"
+                style={{ borderColor: "#27E9E244" }}>
+                <svg
+                  viewBox="0 0 800 600"
+                  className="w-full h-full"
+                  role="img"
+                  aria-label="Иллюстрация Telegram в фирменных цветах"
+                >
+                  {/* фоновые градиенты */}
+                  <defs>
+                    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#27E9E2" />
+                      <stop offset="100%" stopColor="#1C7EEC" />
+                    </linearGradient>
+                    <radialGradient id="g2" cx="70%" cy="30%" r="60%">
+                      <stop offset="0%" stopColor="#1C7EEC" stopOpacity="0.9" />
+                      <stop offset="100%" stopColor="#1C7EEC" stopOpacity="0" />
+                    </radialGradient>
+                  </defs>
+
+                  <rect x="0" y="0" width="800" height="600" fill="url(#g2)" />
+                  {/* абстрактные круги */}
+                  <circle cx="120" cy="120" r="80" fill="#27E9E220" />
+                  <circle cx="700" cy="520" r="100" fill="#1C7EEC22" />
+                  {/* бумажный самолет в градиенте */}
+                  <g transform="translate(180,140) scale(1.2)">
+                    <path d="M480 10 L130 160 L250 210 L300 370 L480 10 Z" fill="none" stroke="url(#g1)" strokeWidth="16" strokeLinejoin="round" />
+                    <path d="M480 10 L250 210" stroke="#27E9E2" strokeWidth="16" strokeLinecap="round" />
+                  </g>
+                  {/* волны снизу */}
+                  <path d="M0,520 C200,480 300,560 520,520 C640,496 740,560 800,540 L800,600 L0,600 Z" fill="#27E9E211" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>

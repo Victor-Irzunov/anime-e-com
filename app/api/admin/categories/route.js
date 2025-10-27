@@ -19,34 +19,25 @@ function makeSlug(name) {
 
 const UPLOAD_DIR = path.resolve(process.cwd(), "public/uploads");
 async function ensureUploadDir() {
-  try {
-    await fs.promises.mkdir(UPLOAD_DIR, { recursive: true });
-  } catch { }
+  await fs.promises.mkdir(UPLOAD_DIR, { recursive: true });
 }
 
 async function saveWebpFile(file) {
-  if (!file || typeof file !== "object") return null;
-  const arrayBuf = await file.arrayBuffer();
-  const buf = Buffer.from(arrayBuf);
-  // серверная валидация лимита 50 KB
-  if (buf.length > 50 * 1024) {
-    throw new Error("IMAGE_TOO_LARGE");
-  }
+  const buf = Buffer.from(await file.arrayBuffer());
+  if (buf.length > 50 * 1024) throw new Error("IMAGE_TOO_LARGE");
   const fname = uuidv4() + ".webp";
-  const fpath = path.join(UPLOAD_DIR, fname);
-  await fs.promises.writeFile(fpath, buf);
+  await fs.promises.writeFile(path.join(UPLOAD_DIR, fname), buf);
   return fname;
 }
 
-async function deleteIfExists(filename) {
-  if (!filename) return;
-  const fpath = path.join(UPLOAD_DIR, filename);
+async function deleteIfExists(fname) {
+  if (!fname) return;
   try {
-    await fs.promises.unlink(fpath);
-  } catch { }
+    await fs.promises.unlink(path.join(UPLOAD_DIR, fname));
+  } catch {}
 }
 
-// GET: список
+/* ✅ GET: список категорий */
 export async function GET() {
   try {
     const items = await prisma.category.findMany({
@@ -63,7 +54,7 @@ export async function GET() {
   }
 }
 
-// POST: создать (multipart/form-data)
+/* ✅ POST: создать категорию */
 export async function POST(req) {
   try {
     await ensureUploadDir();
@@ -71,16 +62,16 @@ export async function POST(req) {
     const name = formData.get("name");
     const h1 = formData.get("h1") || null;
     const contentHtml = formData.get("contentHtml") || null;
-    const imageFile = formData.get("image"); // Blob
+    const imageFile = formData.get("image");
 
-    if (!name) {
+    if (!name)
       return NextResponse.json(
-        { ok: false, error: "Не передано name" },
+        { ok: false, error: "name обязателен" },
         { status: 400 }
       );
-    }
 
     const value = makeSlug(name);
+
     let image = null;
     if (imageFile && typeof imageFile === "object") {
       try {
@@ -116,7 +107,66 @@ export async function POST(req) {
   }
 }
 
-// DELETE: удалить (и картинку, если есть)
+/* ✅ PUT: обновить категорию */
+export async function PUT(req) {
+  try {
+    await ensureUploadDir();
+    const { searchParams } = new URL(req.url);
+    const id = Number(searchParams.get("id"));
+    if (!id)
+      return NextResponse.json(
+        { ok: false, error: "id обязателен" },
+        { status: 400 }
+      );
+
+    const exists = await prisma.category.findUnique({ where: { id } });
+    if (!exists)
+      return NextResponse.json(
+        { ok: false, error: "Категория не найдена" },
+        { status: 404 }
+      );
+
+    const formData = await req.formData();
+    const name = formData.get("name");
+    const h1 = formData.get("h1") || null;
+    const contentHtml = formData.get("contentHtml");
+    const imageFile = formData.get("image");
+
+    if (!name)
+      return NextResponse.json(
+        { ok: false, error: "name обязателен" },
+        { status: 400 }
+      );
+
+    const value = makeSlug(name);
+
+    let image = exists.image;
+    if (imageFile && typeof imageFile === "object") {
+      await deleteIfExists(exists.image);
+      image = await saveWebpFile(imageFile);
+    }
+
+    const data = {
+      name,
+      value,
+      h1,
+      image,
+    };
+    if (contentHtml !== null) data.contentHtml = contentHtml;
+
+    const updated = await prisma.category.update({ where: { id }, data });
+
+    return NextResponse.json({ ok: true, item: updated });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json(
+      { ok: false, error: "Ошибка обновления" },
+      { status: 500 }
+    );
+  }
+}
+
+/* ✅ DELETE */
 export async function DELETE(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -128,19 +178,14 @@ export async function DELETE(req) {
       );
 
     const exists = await prisma.category.findUnique({ where: { id } });
-    if (exists?.image) {
-      await deleteIfExists(exists.image);
-    }
+    if (exists?.image) await deleteIfExists(exists.image);
 
     await prisma.category.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);
     return NextResponse.json(
-      {
-        ok: false,
-        error: "Ошибка удаления категории (есть зависимые записи?)",
-      },
+      { ok: false, error: "Ошибка удаления" },
       { status: 500 }
     );
   }
