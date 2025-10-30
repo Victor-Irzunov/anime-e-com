@@ -85,18 +85,46 @@ export default async function CategoryPage({ params }) {
           {title}
         </h1>
 
-        {/* Подкатегории */}
-        <div className="mt-8 grid sd:grid-cols-4 xz:grid-rows-1 gap-4">
-          {cat.subcategories.map((sub) => (
-            <Link
-              key={sub.id}
-              href={`/${cat.value}/${sub.value}`}
-              className="btn btn-xs"
-            >
-              <p className="text-xs font-normal">{sub.name}</p>
-            </Link>
-          ))}
-        </div>
+        {/* Подкатегории — плитки с изображением и названием */}
+        <section aria-labelledby="subcats-title" className="mt-8">
+          <h2 id="subcats-title" className="sr-only">Подкатегории</h2>
+
+          <div className="grid sd:grid-cols-4 xz:grid-cols-2 gap-4 sd:gap-6">
+            {cat.subcategories.map((sub) => {
+              const subImg = normalizeSrc(sub.image || ""); // подхватит /uploads/<file> или вернёт плейсхолдер
+              return (
+                <Link
+                  key={sub.id}
+                  href={`/${cat.value}/${sub.value}`}
+                  aria-label={`Открыть подкатегорию ${sub.name}`}
+                  className="group rounded-2xl overflow-hidden bg-white border border-gray-200 hover:border-violet-300 transition-colors"
+                >
+                  {/* изображение */}
+                  <div className="relative w-full sd:h-40 xz:h-28">
+                    <Image
+                      src={subImg || "/images/banner/banner.webp"}
+                      alt={sub.h1 || sub.name}
+                      fill
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                      className="object-cover"
+                    />
+                  </div>
+
+                  {/* подпись */}
+                  <div className="p-3 text-center">
+                    <span className="block text-sm sd:text-base font-semibold text-gray-900">
+                      {sub.name}
+                    </span>
+                    <span className="mt-1 inline-block text-xs text-violet-700/80 group-hover:text-violet-700">
+                      Перейти →
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
 
         {/* Товары категории */}
         <div className="mt-12">
