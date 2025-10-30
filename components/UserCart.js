@@ -13,16 +13,16 @@ import OrderFormComp from "./Form/OrderFormComp";
 import { getOneProduct } from "@/http/adminAPI";
 import { MyContext } from "@/contexts/MyContextProvider";
 
-// ——— Константы доставки
+// ——— Константы самовывоза
 const PICKUP_POINTS = [
   { id: "tolstogo", label: "Адрес Толстого 1 , 3 этаж большой островок ТЦ «Минск Сити Молл»." },
   { id: "dzerzh", label: "Адрес Дзержинского 106 , ТЦ «Магнит», 1 этаж , Магазин около бокового входа." },
 ];
 
-// Базовое состояние доставки
+// Базовое состояние доставки (courier только Минск)
 const defaultShipping = {
-  method: "europost", // "europost" | "belpost" | "pickup"
-  format: "door",     // europost: "door" | "pvz"; belpost: "pvz"; pickup: "-"
+  method: "europost", // "europost" | "belpost" | "pickup" | "courier"
+  format: "door",     // europost: "door" | "pvz"; belpost: "pvz"; pickup: "-"; courier: "minsk"
   pickupPointId: PICKUP_POINTS[0].id,
 };
 
@@ -131,25 +131,48 @@ function UserCart({ data, setData }) {
 
   // ——— Логика доставки
   const setAndSaveShipping = (next) => { setShipping(next); saveShipping(next); };
+
   const onSelectMethod = (method) => {
     if (method === "europost") setAndSaveShipping({ method, format: "door", pickupPointId: null });
     else if (method === "belpost") setAndSaveShipping({ method, format: "pvz", pickupPointId: null });
+    else if (method === "courier") setAndSaveShipping({ method, format: "minsk", pickupPointId: null }); // только Минск
     else setAndSaveShipping({ method, format: "-", pickupPointId: PICKUP_POINTS[0].id });
   };
-  const onSelectEuropostFormat = (format) => setAndSaveShipping({ ...shipping, method: "europost", format, pickupPointId: null });
-  const onSelectPickupPoint = (pickupPointId) => setAndSaveShipping({ ...shipping, method: "pickup", format: "-", pickupPointId });
+
+  const onSelectEuropostFormat = (format) =>
+    setAndSaveShipping({ ...shipping, method: "europost", format, pickupPointId: null });
+
+  const onSelectPickupPoint = (pickupPointId) =>
+    setAndSaveShipping({ ...shipping, method: "pickup", format: "-", pickupPointId });
 
   const shippingHuman = useMemo(() => {
     if (shipping.method === "europost") {
-      return { method: "Доставка Европочтой", format: shipping.format === "door" ? "До двери" : "До пункта выдачи",
-        details: "Стоимость доставки от 8р до 13р, при заказе от 100 рублей — доставка бесплатно" };
+      return {
+        method: "Доставка Европочтой",
+        format: shipping.format === "door" ? "До двери" : "До пункта выдачи",
+        details: "Стоимость доставки от 8р до 13р, при заказе от 100 рублей — доставка бесплатно",
+      };
     }
     if (shipping.method === "belpost") {
-      return { method: "Белпочтой", format: "До пункта выдачи",
-        details: "Стоимость доставки от 5р до 12р, при заказе от 100 рублей — доставка бесплатно" };
+      return {
+        method: "Белпочтой",
+        format: "До пункта выдачи",
+        details: "Стоимость доставки от 5р до 12р, при заказе от 100 рублей — доставка бесплатно",
+      };
+    }
+    if (shipping.method === "courier") {
+      return {
+        method: "Курьером",
+        format: "По Минску",
+        details: "Доставка сегодня/завтра по Минску. Стоимость от 7р; при заказе от 100 рублей — бесплатно.",
+      };
     }
     const point = PICKUP_POINTS.find((p) => p.id === shipping.pickupPointId);
-    return { method: "Самовывоз", format: point ? point.label : "", details: "Оплата онлайн или на месте." };
+    return {
+      method: "Самовывоз",
+      format: point ? point.label : "",
+      details: "Оплата онлайн или на месте.",
+    };
   }, [shipping]);
 
   const handleCheckoutClick = () => setIsActive(true);
@@ -187,19 +210,32 @@ function UserCart({ data, setData }) {
           {/* Европочтой */}
           <div className="rounded-xl border bg-gray-50 border-gray-200 p-4">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="radio" name="shipMethod" className="radio radio-secondary"
-                     checked={shipping.method === "europost"} onChange={() => onSelectMethod("europost")} />
+              <input
+                type="radio"
+                name="shipMethod"
+                className="radio radio-secondary"
+                checked={shipping.method === "europost"}
+                onChange={() => onSelectMethod("europost")}
+              />
               <span className="font-medium">Доставка Европочтой</span>
             </label>
             <div className="mt-3 text-sm text-gray-600">Формат доставки:</div>
             <div className="mt-2">
               <div className="join w-full max-w-xl">
-                <button type="button"
-                        className={`join-item btn btn-sm ${shipping.method === "europost" && shipping.format === "door" ? "btn-secondary" : "btn-outline"}`}
-                        onClick={() => onSelectEuropostFormat("door")}>До двери</button>
-                <button type="button"
-                        className={`join-item btn btn-sm ${shipping.method === "europost" && shipping.format === "pvz" ? "btn-secondary" : "btn-outline"}`}
-                        onClick={() => onSelectEuropostFormat("pvz")}>До пункта выдачи</button>
+                <button
+                  type="button"
+                  className={`join-item btn btn-sm ${shipping.method === "europost" && shipping.format === "door" ? "btn-secondary" : "btn-outline"}`}
+                  onClick={() => onSelectEuropostFormat("door")}
+                >
+                  До двери
+                </button>
+                <button
+                  type="button"
+                  className={`join-item btn btn-sm ${shipping.method === "europost" && shipping.format === "pvz" ? "btn-secondary" : "btn-outline"}`}
+                  onClick={() => onSelectEuropostFormat("pvz")}
+                >
+                  До пункта выдачи
+                </button>
               </div>
             </div>
           </div>
@@ -207,33 +243,66 @@ function UserCart({ data, setData }) {
           {/* Белпочтой */}
           <div className="rounded-xl border bg-gray-50 border-gray-200 p-4">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="radio" name="shipMethod" className="radio radio-secondary"
-                     checked={shipping.method === "belpost"} onChange={() => onSelectMethod("belpost")} />
+              <input
+                type="radio"
+                name="shipMethod"
+                className="radio radio-secondary"
+                checked={shipping.method === "belpost"}
+                onChange={() => onSelectMethod("belpost")}
+              />
               <span className="font-medium">Белпочтой</span>
             </label>
             <div className="mt-3 text-sm text-gray-600">Формат доставки:</div>
             <div className="mt-2">
               <div className="join w-full max-w-xl">
-                <button type="button" className="join-item btn btn-sm btn-secondary" disabled>До пункта выдачи</button>
+                <button type="button" className="join-item btn btn-sm btn-secondary" disabled>
+                  До пункта выдачи
+                </button>
               </div>
+            </div>
+          </div>
+
+          {/* Курьером — ТОЛЬКО по Минску */}
+          <div className="rounded-xl border bg-gray-50 border-gray-200 p-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="shipMethod"
+                className="radio radio-secondary"
+                checked={shipping.method === "courier"}
+                onChange={() => onSelectMethod("courier")}
+              />
+              <span className="font-medium">Курьером (по Минску)</span>
+            </label>
+            <div className="mt-2 text-xs text-gray-500">
+              Доставка сегодня/завтра по Минску. Стоимость от 7р; при заказе от 100 рублей — бесплатно.
             </div>
           </div>
 
           {/* Самовывоз */}
           <div className="rounded-xl border bg-gray-50 border-gray-200 p-4">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="radio" name="shipMethod" className="radio radio-secondary"
-                     checked={shipping.method === "pickup"} onChange={() => onSelectMethod("pickup")} />
+              <input
+                type="radio"
+                name="shipMethod"
+                className="radio radio-secondary"
+                checked={shipping.method === "pickup"}
+                onChange={() => onSelectMethod("pickup")}
+              />
               <span className="font-medium">Самовывоз</span>
             </label>
             <div className="mt-3 text-sm text-gray-600">Пункт самовывоза:</div>
             <div className="mt-2 grid gap-2">
               {PICKUP_POINTS.map((p) => (
                 <label key={p.id} className="flex items-center gap-3 cursor-pointer">
-                  <input type="radio" name="pickupPoint" className="radio radio-sm radio-secondary"
-                         disabled={shipping.method !== "pickup"}
-                         checked={shipping.method === "pickup" && shipping.pickupPointId === p.id}
-                         onChange={() => onSelectPickupPoint(p.id)} />
+                  <input
+                    type="radio"
+                    name="pickupPoint"
+                    className="radio radio-sm radio-secondary"
+                    disabled={shipping.method !== "pickup"}
+                    checked={shipping.method === "pickup" && shipping.pickupPointId === p.id}
+                    onChange={() => onSelectPickupPoint(p.id)}
+                  />
                   <span className="text-sm">{p.label}</span>
                 </label>
               ))}

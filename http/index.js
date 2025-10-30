@@ -1,10 +1,10 @@
+// http/index.js
 import axios from "axios"
 
 //_без авторизации
 const $host = axios.create({
     baseURL: process.env.NEXT_PUBLIC_BASE_URL
 })
-
 
 const $authHost = axios.create({
     baseURL: process.env.NEXT_PUBLIC_BASE_URL

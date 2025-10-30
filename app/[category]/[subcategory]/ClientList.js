@@ -1,4 +1,3 @@
-// /app/[category]/[subcategory]/ClientList.jsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -9,6 +8,20 @@ import ProductList from "@/components/ProductList";
 import { RiLayoutGridLine, RiListCheck2, RiFilter2Line } from "react-icons/ri";
 import { getAllProductsOneSubCategory } from "@/http/adminAPI";
 import Image from "next/image";
+
+/** Утилита нормализации пути к картинке */
+function normalizeSrc(raw) {
+  if (!raw) return "/images/banner/banner.webp";
+  if (raw.startsWith("http")) return raw;
+  if (raw.startsWith("/uploads/") || raw.startsWith("uploads/")) {
+    return raw.startsWith("/") ? raw : `/${raw}`;
+  }
+  if (raw.startsWith("/images/") || raw.startsWith("images/")) {
+    return raw.startsWith("/") ? raw : `/${raw}`;
+  }
+  // в БД только имя файла
+  return `/uploads/${raw}`;
+}
 
 export default function ClientList({ category, subcategory }) {
   // Список товаров
@@ -27,9 +40,10 @@ export default function ClientList({ category, subcategory }) {
   const itemsPerPage = 12;
   const [totalItems, setTotalItems] = useState(0);
 
-  // Заголовок и SEO-контент подкатегории
+  // Заголовок/контент/картинка подкатегории
   const [h1, setH1] = useState("");
   const [content, setContent] = useState(null);
+  const [heroImage, setHeroImage] = useState("");
 
   // Загрузка данных при смене подкатегории/категории
   useEffect(() => {
@@ -48,6 +62,7 @@ export default function ClientList({ category, subcategory }) {
 
     setH1("");
     setContent(null);
+    setHeroImage("");
 
     // 1) Товары (принимаем латинские слаги, на бэке есть маппинг и на русские названия)
     getAllProductsOneSubCategory(subcategory, category).then((arr) => {
@@ -58,7 +73,7 @@ export default function ClientList({ category, subcategory }) {
       setLoaded(true);
     });
 
-    // 2) H1/контент подкатегории
+    // 2) H1/контент/картинка подкатегории
     (async () => {
       try {
         const r = await fetch(
@@ -70,6 +85,7 @@ export default function ClientList({ category, subcategory }) {
           const sub = j.items[0];
           setH1(sub.h1 || sub.name);
           setContent(sub.contentHtml || "");
+          setHeroImage(normalizeSrc(sub.image || ""));
         }
       } catch {
         // noop
@@ -123,9 +139,27 @@ export default function ClientList({ category, subcategory }) {
   return (
     <div className="container mx-auto pt-2 pb-20">
       <Breadcrumbs />
-      <div className="my-5">
-        <h1 className="text-4xl">{h1}</h1>
-      </div>
+
+      {/* === HERO на фото подкатегории (как у категорий) === */}
+      <section
+        className="relative w-full overflow-hidden rounded-2xl sd:h-80 xz:h-[180px] mt-4"
+        aria-label={h1 || "Подкатегория"}
+      >
+        <Image
+          src={heroImage || "/images/banner/banner.webp"}
+          alt={h1 || "Изображение подкатегории"}
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <h1 className="text-white text-center font-extrabold tracking-tight sd:text-5xl xz:text-3xl drop-shadow-md px-3">
+            {h1}
+          </h1>
+        </div>
+      </section>
 
       {!loaded ? (
         // Спиннер показываем ТОЛЬКО пока действительно грузим
@@ -135,7 +169,7 @@ export default function ClientList({ category, subcategory }) {
       ) : (
         <div className="px-2 py-4 flex relative">
           {/* Сайдбар фильтров — десктоп */}
-          <div className=''>
+          <div className="">
             <div className="sd:block xz:hidden sticky top-10">
               <ProductFilterAside
                 products={products}
@@ -157,9 +191,7 @@ export default function ClientList({ category, subcategory }) {
 
             {/* Панель сортировки + вид + мобильный фильтр */}
             <div className="pt-[1.7rem] pb-2 flex flex-col items-center">
-
-              <div className='flex justify-between w-full space-x-2'>
-
+              <div className="flex justify-between w-full space-x-2">
                 <div className="sd:hidden xz:block drawer z-40">
                   <input id="my-drawer4" type="checkbox" className="drawer-toggle" />
                   <div className="drawer-content">
@@ -188,7 +220,6 @@ export default function ClientList({ category, subcategory }) {
                   </div>
                 </div>
 
-
                 {/* Сортировка + переключатель вида */}
                 <div className="flex justify-between items-center gap-2 w-full mb-8">
                   <div className="w-full">
@@ -207,16 +238,14 @@ export default function ClientList({ category, subcategory }) {
 
                   <div className="join space-x-2">
                     <button
-                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${isListView ? "bg-gray-200" : ""
-                        }`}
+                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${isListView ? "bg-gray-200" : ""}`}
                       onClick={() => setIsListView(true)}
                       aria-label="Список"
                     >
                       <RiListCheck2 />
                     </button>
                     <button
-                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${!isListView ? "bg-gray-200" : ""
-                        }`}
+                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${!isListView ? "bg-gray-200" : ""}`}
                       onClick={() => setIsListView(false)}
                       aria-label="Плитка"
                     >
@@ -224,7 +253,6 @@ export default function ClientList({ category, subcategory }) {
                     </button>
                   </div>
                 </div>
-
               </div>
 
               {/* Список товаров */}
@@ -248,27 +276,26 @@ export default function ClientList({ category, subcategory }) {
       )}
 
       {content ? (
-        <div className='relative z-10 overflow-hidden py-20 mt-9'>
+        <div className="relative z-10 overflow-hidden py-20 mt-9">
           <div
             className="prose max-w-none mt-8"
             dangerouslySetInnerHTML={{ __html: content }}
           />
           <Image
-            src='/images/anime/anime.webp'
-            alt='Аниме фигурка'
-            width={300} height={300}
+            src="/images/anime/anime.webp"
+            alt="Аниме фигурка"
+            width={300}
+            height={300}
             className="absolute sd:top-1/2 xz:top-0 sd:right-0 xz:-right-8 -z-10 sd:w-[300px] xz:w-[200px]"
           />
-
           <Image
-            src='/images/anime/anime-2.webp'
-            alt='Аниме фигурка'
-            width={200} height={200}
+            src="/images/anime/anime-2.webp"
+            alt="Аниме фигурка"
+            width={200}
+            height={200}
             className="absolute sd:-bottom-16 xz:bottom-0 -left-4 -z-10"
           />
-
         </div>
-
       ) : null}
     </div>
   );

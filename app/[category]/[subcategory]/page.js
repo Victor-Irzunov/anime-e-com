@@ -1,4 +1,3 @@
-// /app/[category]/[subcategory]/page.jsx
 import ClientList from "./ClientList";
 
 export default async function Page(props) {

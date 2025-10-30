@@ -1,11 +1,11 @@
-// /components/ImgProductDetails.js
+// /components/ImgProductDetails.js — ЗАМЕНИТЬ ПОЛНОСТЬЮ (подключили QuickBuyForm)
 "use client";
 import Link from "next/link";
 import { useContext, useEffect, useRef, useState } from "react";
 import { RiAddFill, RiCheckboxCircleFill, RiShieldCheckFill, RiSubtractFill } from "react-icons/ri";
 import { BsChevronLeft, BsChevronRight } from "react-icons/bs";
-import FormOrder from "./Form/FormOrder";
 import { MyContext } from "@/contexts/MyContextProvider";
+import QuickBuyForm from "@/components/Form/QuickBuyForm";
 
 const ImgProductDetails = ({ product }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -14,12 +14,11 @@ const ImgProductDetails = ({ product }) => {
   const { updateState } = useContext(MyContext);
 
   // dialog refs + timer
-  const cartDialogRef = useRef(null);  // my_modal_1
+  const cartDialogRef = useRef(null);     // my_modal_1
   const quickBuyDialogRef = useRef(null); // my_modal_3
   const autoCloseTimerRef = useRef(null);
 
   useEffect(() => () => {
-    // cleanup timer on unmount
     if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
   }, []);
 
@@ -45,10 +44,7 @@ const ImgProductDetails = ({ product }) => {
     localStorage.setItem("cart", JSON.stringify(existingCart));
     updateState();
 
-    // безопасно показать модалку
     cartDialogRef.current?.showModal?.();
-
-    // авто-закрытие через 4с (если компонент ещё в DOM)
     if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
     autoCloseTimerRef.current = setTimeout(() => {
       if (cartDialogRef.current?.open) cartDialogRef.current.close();
@@ -175,13 +171,19 @@ const ImgProductDetails = ({ product }) => {
           <form method="dialog">
             <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Закрыть">✕</button>
           </form>
-          <p className="font-bold text-lg">Ваш заказ: {product.title}</p>
-          <p className="font-bold text-base">Сумма заказа: {product.price.toFixed(2)} руб</p>
-          <p className="py-4 text-xs">Заполните, пожалуйста, данные формы, чтобы быстро оформить заказ.</p>
-          <div className="modal-action">
-            <FormOrder product={product} closeModalOrder={() => quickBuyDialogRef.current?.close?.()} />
+
+          <p className="font-bold text-lg mb-2">Быстрая покупка</p>
+          <div className="mb-3 text-sm">
+            {product.title} · <span className="font-medium">{(product.price * quantity).toFixed(2)} руб</span>
           </div>
-          <p className="py-4 text-sm">После получения вашего заказа мы перезвоним вам для подтверждения.</p>
+
+          <div className="modal-action block">
+            <QuickBuyForm
+              product={product}
+              quantity={quantity}
+              onClose={() => quickBuyDialogRef.current?.close?.()}
+            />
+          </div>
         </div>
       </dialog>
 
