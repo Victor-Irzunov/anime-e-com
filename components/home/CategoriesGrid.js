@@ -1,4 +1,3 @@
-// /components/home/CategoriesGrid.jsx
 import Link from "next/link";
 
 async function getCats() {
@@ -13,29 +12,43 @@ export default async function CategoriesGrid() {
 
   return (
     <section className="container mx-auto sd:py-10 xz:py-6 sd:px-0 xz:px-3">
-      <div className="grid lg:grid-cols-2 grid-cols-1 gap-6">
+      <div className="grid sd:grid-cols-3 xz:grid-cols-2 gap-4 sd:gap-6">
         {cats.map((c) => {
-          const img = c.image ? `${process.env.NEXT_PUBLIC_BASE_URL || ""}/uploads/${c.image}` : "/placeholder-cat.webp";
+          const base = process.env.NEXT_PUBLIC_BASE_URL || "";
+          const img = c.image ? `${base}/uploads/${c.image}` : "/placeholder-cat.webp";
+          const count = c.productsCount ?? c._count?.products ?? 0;
+
           return (
-            <div key={c.id} className="relative rounded-2xl overflow-hidden group h-[340px] border border-gray-200">
-              <img
-                src={img}
-                alt={c.name}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-black/45" />
-              <div className="relative z-10 h-full p-6 flex flex-col justify-between text-white">
-                <h3 className="sd:text-4xl xz:text-2xl font-semibold drop-shadow-md">{c.name}</h3>
-                <div>
-                  <Link href={`/${c.value}`} className="btn btn-secondary normal-case rounded-xl">
-                    Перейти в каталог
-                  </Link>
+
+            <Link
+              href={`/${c.value}`}
+              key={c.id}
+              className=""
+              aria-label={`Перейти в каталог категории ${c.name}`}
+            >
+              <article className="group">
+                {/* Изображение */}
+                <div className="relative w-full sd:h-[220px] xz:h-40 overflow-hidden rounded-2xl">
+                  <img
+                    src={img}
+                    alt={c.name}
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                  />
                 </div>
-              </div>
-            </div>
+
+                {/* Под изображением: h3 и ссылка — центрируем, без теней и бордеров */}
+                <div className="pt-3 flex flex-col items-center text-center">
+                  <h3 className="font-semibold tracking-wide text-[15px] sd:text-[16px] uppercase text-[#5b2a86]">
+                    {c.name}
+                  </h3>
+                  <p className="mt-1 text-[13px] sd:text-[14px] text-[#7a4bb1]">{count} товаров</p>
+                </div>
+              </article>
+            </Link>
           );
         })}
       </div>
-    </section>
+    </section >
   );
 }

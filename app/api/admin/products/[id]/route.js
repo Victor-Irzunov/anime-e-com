@@ -53,6 +53,47 @@ function mapImagesUrlToLegacy(images) {
   }));
 }
 
+/** Приведение к относительному пути внутри /uploads */
+function toRelUpload(p) {
+  if (!p) return "";
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "";
+  if (base && p.startsWith(base)) p = p.slice(base.length);
+  if (p[0] !== "/") p = `/${p}`;
+  return p;
+}
+
+/** Физически удалить файл, только если он в /uploads */
+async function unlinkIfLocalUpload(rel) {
+  if (!rel || !rel.startsWith("/uploads/")) return;
+  const abs = path.resolve(process.cwd(), "public", rel.replace(/^\/+/, ""));
+  try { await fs.promises.unlink(abs); } catch { }
+}
+
+/** Собрать все пути из thumbnail + images (string | {image} | {url}) */
+function extractAllUploadPaths(product) {
+  const out = new Set();
+
+  // thumbnail: может быть строкой JSON массива или строкой пути
+  const thumbRaw = product?.thumbnail;
+  const thumbArr = parseJsonSafe(thumbRaw, null);
+  if (Array.isArray(thumbArr) && thumbArr[0]) {
+    const t = thumbArr[0].image || thumbArr[0].url || "";
+    if (t) out.add(toRelUpload(t));
+  } else if (typeof thumbRaw === "string" && thumbRaw) {
+    out.add(toRelUpload(thumbRaw));
+  }
+
+  // images: массив строк или объектов
+  const imagesArr = parseJsonSafe(product?.images, []);
+  for (const it of imagesArr) {
+    const p = (typeof it === "string") ? it : (it?.image || it?.url || "");
+    if (p) out.add(toRelUpload(p));
+  }
+
+  return Array.from(out);
+}
+
+// === HANDLERS ===
 export async function GET(_req, { params: { id } }) {
   try {
     const product = await prisma.product.findUnique({
@@ -215,50 +256,47 @@ export async function PUT(req, { params: { id } }) {
 // 2) /api/admin/products/[id] без name -> удалить весь продукт со всеми файлами (если они локальные)
 export async function DELETE(req, { params: { id } }) {
   try {
+    const pid = Number(id);
     const { searchParams } = new URL(req.url);
-    const name = searchParams.get("name");
+    const name = searchParams.get("name"); // /uploads/xxx.webp (или абсолютный)
 
-    const product = await prisma.product.findUnique({ where: { id: Number(id) } });
+    const product = await prisma.product.findUnique({ where: { id: pid } });
     if (!product) return new NextResponse("Продукт не найден", { status: 404 });
 
+    // Удаление ОДНОГО изображения из images
     if (name) {
-      // удалить ОДНО изображение из images
-      const images = Array.isArray(product.images) ? product.images : parseJsonSafe(product.images, []);
-      const filtered = images.filter((img) => (img.image || "") !== name);
+      const targetRel = toRelUpload(name);
 
-      // удалить файл только если он внутри /uploads (локальный)
-      if (name.startsWith("/uploads/")) {
-        const imagePath = path.resolve(process.cwd(), "public", name.replace(/^\/+/, ""));
-        try {
-          await fs.promises.unlink(imagePath);
-        } catch { }
-      }
+      const imagesArr = parseJsonSafe(product.images, []);
+      const filtered = imagesArr.filter((it) => {
+        const p = (typeof it === "string") ? it : (it?.image || it?.url || "");
+        return toRelUpload(p) !== targetRel;
+      });
+
+      // Удаляем физически файл, если локальный
+      await unlinkIfLocalUpload(targetRel);
+
+      // Нормализуем в { url, sort }
+      const normalized = filtered.map((it, idx) => {
+        if (typeof it === "string") return { url: toRelUpload(it), sort: idx };
+        const v = it?.image || it?.url || "";
+        return { url: toRelUpload(v), sort: idx };
+      });
 
       await prisma.product.update({
-        where: { id: Number(id) },
-        data: { images: filtered },
+        where: { id: pid },
+        data: { images: normalized },
       });
+
       return new NextResponse("Изображение удалено!", { status: 200 });
     }
 
-    // удалить ВСЁ: thumbnail + images + запись (только локальные файлы)
-    const thumbArr = parseJsonSafe(product.thumbnail, []);
-    const imagesArr = Array.isArray(product.images) ? product.images : parseJsonSafe(product.images, []);
+    // Полное удаление товара: чистим все локальные файлы + запись
+    const allPaths = extractAllUploadPaths(product);
+    await Promise.all(allPaths.map(unlinkIfLocalUpload));
 
-    const thumbName = thumbArr[0]?.image;
-    if (thumbName && thumbName.startsWith("/uploads/")) {
-      const thumbPath = path.resolve(process.cwd(), "public", thumbName.replace(/^\/+/, ""));
-      try { await fs.promises.unlink(thumbPath); } catch { }
-    }
-    for (const it of imagesArr) {
-      const img = it?.image;
-      if (img && img.startsWith("/uploads/")) {
-        const p = path.resolve(process.cwd(), "public", img.replace(/^\/+/, ""));
-        try { await fs.promises.unlink(p); } catch { }
-      }
-    }
+    await prisma.product.delete({ where: { id: pid } });
 
-    await prisma.product.delete({ where: { id: Number(id) } });
     return new NextResponse("Продукт удалён!", { status: 200 });
   } catch (e) {
     console.error("DELETE /products/[id] error:", e);
