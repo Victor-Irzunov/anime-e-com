@@ -91,7 +91,7 @@ export default function ModalSearch({ modalVisible, setModalVisible }) {
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Название, артикул, категория, подкатегория…"
+          placeholder="Я хочу купить…"
           className="input input-bordered w-full"
         />
 
@@ -105,7 +105,6 @@ export default function ModalSearch({ modalVisible, setModalVisible }) {
           <div className="mt-5 max-h-[60vh] overflow-y-auto pr-1">
             {grouped.map((cat) => (
               <div key={cat.categoryValue} className="mb-7">
-                {/* Заголовок категории — переход в категорию */}
                 <div className="flex items-baseline justify-between">
                   <Link
                     href={`/${encodeURIComponent(cat.categoryValue)}`}

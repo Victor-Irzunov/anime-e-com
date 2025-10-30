@@ -25,9 +25,9 @@ function normalizeSrc(raw) {
 
 export default function ClientList({ category, subcategory }) {
   // Список товаров
-  const [products, setProducts] = useState([]);         // всегда массив
+  const [products, setProducts] = useState([]); // всегда массив
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [loaded, setLoaded] = useState(false);          // флаг завершения загрузки
+  const [loaded, setLoaded] = useState(false); // флаг завершения загрузки
 
   // Фильтры/сортировка/вид
   const [sortOption, setSortOption] = useState("");
@@ -64,7 +64,7 @@ export default function ClientList({ category, subcategory }) {
     setContent(null);
     setHeroImage("");
 
-    // 1) Товары (принимаем латинские слаги, на бэке есть маппинг и на русские названия)
+    // 1) Товары
     getAllProductsOneSubCategory(subcategory, category).then((arr) => {
       const list = Array.isArray(arr) ? arr : [];
       setProducts(list);
@@ -140,7 +140,7 @@ export default function ClientList({ category, subcategory }) {
     <div className="container mx-auto pt-2 pb-20">
       <Breadcrumbs />
 
-      {/* === HERO на фото подкатегории (как у категорий) === */}
+      {/* === HERO на фото подкатегории (без затемнения) === */}
       <section
         className="relative w-full overflow-hidden rounded-2xl sd:h-80 xz:h-[180px] mt-4"
         aria-label={h1 || "Подкатегория"}
@@ -153,13 +153,12 @@ export default function ClientList({ category, subcategory }) {
           className="object-cover"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-black/55" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <h1 className="text-white text-center font-extrabold tracking-tight sd:text-5xl xz:text-3xl drop-shadow-md px-3">
-            {h1}
-          </h1>
-        </div>
       </section>
+
+      {/* H1 ПОД изображением */}
+      <h1 className="text-center font-extrabold tracking-tight sd:text-5xl xz:text-3xl mt-8 mb-10">
+        {h1}
+      </h1>
 
       {!loaded ? (
         // Спиннер показываем ТОЛЬКО пока действительно грузим
@@ -238,14 +237,18 @@ export default function ClientList({ category, subcategory }) {
 
                   <div className="join space-x-2">
                     <button
-                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${isListView ? "bg-gray-200" : ""}`}
+                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${
+                        isListView ? "bg-gray-200" : ""
+                      }`}
                       onClick={() => setIsListView(true)}
                       aria-label="Список"
                     >
                       <RiListCheck2 />
                     </button>
                     <button
-                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${!isListView ? "bg-gray-200" : ""}`}
+                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${
+                        !isListView ? "bg-gray-200" : ""
+                      }`}
                       onClick={() => setIsListView(false)}
                       aria-label="Плитка"
                     >

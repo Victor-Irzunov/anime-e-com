@@ -64,7 +64,7 @@ function ProductListSingle({ product = {}, isListView, categorySlug, subcategory
   return (
     <Link
       href={href}
-      className={`group bg-white rounded-lg border border-gray-300 p-3 flex gap-4 transition-colors hover:border-primary ${!isListView ? "flex-col" : "flex-col xs:flex-row"
+      className={`group bg-white rounded-lg border border-gray-300 p-1 flex gap-4 transition-colors hover:border-primary ${!isListView ? "flex-col" : "flex-col xs:flex-row"
         }`}
       style={{ height: "100%" }}
     >
@@ -99,7 +99,7 @@ function ProductListSingle({ product = {}, isListView, categorySlug, subcategory
       </div>
 
       {/* CONTENT */}
-      <div className="flex-1 flex flex-col justify-between">
+      <div className="flex-1 flex flex-col justify-between sd:p-3 xz:p-2">
         {/* Title */}
         <h3
           className={`font-semibold text-base leading-snug ${isListView ? "" : "xz:text-xs sd:text-base"

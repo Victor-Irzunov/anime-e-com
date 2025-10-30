@@ -60,18 +60,16 @@ export default async function CategoryPage({ params }) {
   }
 
   const title = cat.h1 || cat.name;
-  const imgSrc = normalizeSrc(cat.image); // <= теперь вернёт /uploads/56c1....webp
+  const imgSrc = normalizeSrc(cat.image); // <= вернёт корректный путь (в т.ч. /uploads/...)
 
   return (
     <main className="pt-2 pb-10">
       <div className="container mx-auto">
+        {/* Хлебные крошки СВЕРХУ */}
         <Breadcrumbs />
 
-        {/* === HERO на фото категории === */}
-        <section
-          className="relative w-full overflow-hidden rounded-2xl sd:h-80 xz:h-[180px] mt-4"
-          aria-label={title}
-        >
+        {/* === HERO на фото категории (без затемнения) === */}
+        <section className="relative w-full overflow-hidden rounded-2xl sd:h-80 xz:h-[180px] mt-4" aria-label={title}>
           <Image
             src={imgSrc}
             alt={title}
@@ -80,13 +78,12 @@ export default async function CategoryPage({ params }) {
             className="object-cover"
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-black/55" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <h1 className="text-white text-center font-extrabold tracking-tight sd:text-5xl xz:text-3xl drop-shadow-md px-3">
-              {title}
-            </h1>
-          </div>
         </section>
+
+        {/* H1 ПОД изображением */}
+        <h1 className="text-center font-extrabold tracking-tight sd:text-5xl xz:text-3xl mt-6">
+          {title}
+        </h1>
 
         {/* Подкатегории */}
         <div className="mt-8 grid sd:grid-cols-4 xz:grid-rows-1 gap-4">
