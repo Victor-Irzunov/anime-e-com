@@ -1,3 +1,4 @@
+// /app/(category)/[category]/page.jsx — ПОЛНОСТЬЮ
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -22,6 +23,13 @@ export async function generateMetadata({ params }) {
     description: `${base} купить в Минске. Купить можно на сайте с доставкой и самовывозом. Адреса магазинов и телефоны указаны на сайте.`,
     alternates: { canonical: `${process.env.NEXT_PUBLIC_BASE_URL}/${cat.value}` },
     keywords: `${cat.name.toLowerCase()}, купить, каталог`,
+    openGraph: {
+      title: `Купить ${base} в Минске`,
+      description: `${base} купить в Минске. Купить можно на сайте с доставкой и самовывозом.`,
+      url: `/${cat.value}`,
+      type: "website",
+      images: [{ url: "/og/og-image.jpg", width: 1200, height: 630 }],
+    },
   };
 }
 
@@ -42,6 +50,9 @@ function normalizeSrc(raw) {
   return `/uploads/${raw}`;
 }
 
+/** Флаг: локальные загрузки из /uploads (для unoptimized) */
+const isLocalUpload = (src) => typeof src === "string" && src.startsWith("/uploads/");
+
 export default async function CategoryPage({ params }) {
   const { category } = await params;
 
@@ -60,7 +71,7 @@ export default async function CategoryPage({ params }) {
   }
 
   const title = cat.h1 || cat.name;
-  const imgSrc = normalizeSrc(cat.image); // <= вернёт корректный путь (в т.ч. /uploads/...)
+  const imgSrc = normalizeSrc(cat.image); // /uploads/<file> или плейсхолдер
 
   return (
     <main className="pt-2 pb-10">
@@ -68,8 +79,11 @@ export default async function CategoryPage({ params }) {
         {/* Хлебные крошки СВЕРХУ */}
         <Breadcrumbs />
 
-        {/* === HERO на фото категории (без затемнения) === */}
-        <section className="relative w-full overflow-hidden rounded-2xl sd:h-80 xz:h-[180px] mt-4" aria-label={title}>
+        {/* === HERO на фото категории === */}
+        <section
+          className="relative w-full overflow-hidden rounded-2xl sd:h-80 xz:h-[180px] mt-4"
+          aria-label={title}
+        >
           <Image
             src={imgSrc}
             alt={title}
@@ -77,6 +91,8 @@ export default async function CategoryPage({ params }) {
             priority
             className="object-cover"
             sizes="100vw"
+            // FIX: не прокидываем functions (loader), только булево unoptimized
+            unoptimized={isLocalUpload(imgSrc)}
           />
         </section>
 
@@ -91,7 +107,9 @@ export default async function CategoryPage({ params }) {
 
           <div className="grid sd:grid-cols-4 xz:grid-cols-2 gap-4 sd:gap-6">
             {cat.subcategories.map((sub) => {
-              const subImg = normalizeSrc(sub.image || ""); // подхватит /uploads/<file> или вернёт плейсхолдер
+              const subImg = normalizeSrc(sub.image || ""); // /uploads/<file> или плейсхолдер
+              const subAlt = sub.h1 || sub.name;
+
               return (
                 <Link
                   key={sub.id}
@@ -103,10 +121,11 @@ export default async function CategoryPage({ params }) {
                   <div className="relative w-full sd:h-40 xz:h-28">
                     <Image
                       src={subImg || "/images/banner/banner.webp"}
-                      alt={sub.h1 || sub.name}
+                      alt={subAlt}
                       fill
                       sizes="(max-width: 768px) 50vw, 25vw"
                       className="object-cover"
+                      unoptimized={isLocalUpload(subImg)}
                     />
                   </div>
 
@@ -125,10 +144,8 @@ export default async function CategoryPage({ params }) {
           </div>
         </section>
 
-
         {/* Товары категории */}
         <div className="mt-12">
-          {/* ClientList уже в проекте */}
           {/* @ts-expect-error Server Component boundary */}
           <ClientList category={category} title={title} />
         </div>
