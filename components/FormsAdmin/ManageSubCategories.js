@@ -1,4 +1,4 @@
-// /components/FormsAdmin/ManageSubCategories.jsx
+// /components/FormsAdmin/ManageSubCategories.jsx — ПОЛНОСТЬЮ
 "use client";
 import { useEffect, useState } from "react";
 import {
@@ -57,6 +57,7 @@ export default function ManageSubCategories() {
   const [imageList, setImageList] = useState([]);
   const [initialImage, setInitialImage] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const loadCats = async () => {
     const r = await fetch("/api/admin/categories", { cache: "no-store" });
@@ -86,16 +87,32 @@ export default function ManageSubCategories() {
 
   const onFinish = async (v) => {
     try {
+      setLoading(true);
       const fd = new FormData();
-      fd.append("name", v.name);
+
+      if (!v.categoryId) {
+        message.error("Выберите категорию");
+        setLoading(false);
+        return;
+      }
+
       fd.append("categoryId", String(v.categoryId));
-      fd.append("h1", v.h1 || "");
+      fd.append("name", v.name?.trim());
+      fd.append("h1", v.h1?.trim());
 
       if (contentHtml !== initialContentHtml) {
         fd.append("contentHtml", contentHtml);
       }
 
-      if (imageList.length && imageList[0].originFileObj) {
+      // Обязательно одно изображение (POST обязательно, PUT — если меняем)
+      if (!editId) {
+        if (!imageList.length || !imageList[0]?.originFileObj) {
+          message.error("Загрузите изображение подкатегории (WEBP до 50KB)");
+          setLoading(false);
+          return;
+        }
+        fd.append("image", imageList[0].originFileObj);
+      } else if (imageList.length && imageList[0]?.originFileObj) {
         fd.append("image", imageList[0].originFileObj);
       }
 
@@ -117,6 +134,8 @@ export default function ManageSubCategories() {
     } catch (e) {
       console.error(e);
       message.error("Ошибка сохранения");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -153,7 +172,7 @@ export default function ManageSubCategories() {
     <div className="space-y-6">
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Form.Item
-          label="Категория"
+          label="Категория *"
           name="categoryId"
           rules={[{ required: true, message: "Выберите категорию" }]}
         >
@@ -169,18 +188,27 @@ export default function ManageSubCategories() {
         </Form.Item>
 
         <Form.Item
-          label="Название подкатегории"
+          label="Название подкатегории *"
           name="name"
-          rules={[{ required: true }]}
+          rules={[{ required: true, message: "Введите название подкатегории" }]}
         >
           <Input placeholder="Например: Нендороиды" />
         </Form.Item>
 
-        <Form.Item label="H1" name="h1">
+        <Form.Item
+          label="H1 *"
+          name="h1"
+          rules={[{ required: true, message: "Введите H1" }]}
+        >
           <Input placeholder="Нендороиды купить в Минске" />
         </Form.Item>
 
-        <Form.Item label="Изображение подкатегории (WEBP до 50KB)">
+        <Form.Item
+          label="Изображение подкатегории (WEBP до 50KB) *"
+          required
+          validateStatus={!editId && imageList.length === 0 ? "error" : ""}
+          help={!editId && imageList.length === 0 ? "Загрузите изображение" : ""}
+        >
           <Upload
             accept="image/*"
             listType="picture"
@@ -202,11 +230,11 @@ export default function ManageSubCategories() {
           </Upload>
         </Form.Item>
 
-        <div className="mb-2 font-semibold">SEO Контент</div>
+        <div className="mb-2 font-semibold">SEO Контент (необязательно)</div>
         <CKeditor value={contentHtml} onChange={setContentHtml} />
 
         <div className="flex gap-4 py-4">
-          <Button type="primary" htmlType="submit">
+          <Button type="primary" htmlType="submit" loading={loading}>
             {editId ? "Сохранить изменения" : "Сохранить"}
           </Button>
           {editId && (

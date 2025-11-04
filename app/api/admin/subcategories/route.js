@@ -1,4 +1,4 @@
-// /app/api/admin/subcategories/route.js
+// /app/api/admin/subcategories/route.js — ПОЛНОСТЬЮ
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import CyrillicToTranslit from "cyrillic-to-translit-js";
@@ -33,6 +33,10 @@ async function delImg(name) {
   } catch {}
 }
 
+function bad(msg, code = 400) {
+  return NextResponse.json({ ok: false, error: msg }, { status: code });
+}
+
 /* ✅ GET — полностью рабочий */
 export async function GET(req) {
   try {
@@ -48,68 +52,107 @@ export async function GET(req) {
     return NextResponse.json({ ok: true, items });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ ok: false });
+    return bad("Ошибка получения подкатегорий", 500);
   }
 }
 
-/* ✅ POST — без изменений */
+/* ✅ POST — создать подкатегорию (все поля обязательны, кроме contentHtml) */
 export async function POST(req) {
   try {
     await ensureDir();
     const form = await req.formData();
 
-    const name = form.get("name");
+    const name = String(form.get("name") || "").trim();
     const categoryId = Number(form.get("categoryId"));
-    const h1 = form.get("h1") || null;
-    const contentHtml = form.get("contentHtml") || null;
+    const h1 = String(form.get("h1") || "").trim();
+    const contentHtml = form.get("contentHtml"); // может быть null
     const file = form.get("image");
 
-    if (!name || !categoryId)
-      return NextResponse.json({ ok: false, error: "name/categoryId" });
+    if (!name) return bad("Поле name обязательно");
+    if (!categoryId) return bad("Поле categoryId обязательно");
+    if (!h1) return bad("Поле h1 обязательно");
+    if (!file || typeof file !== "object") {
+      return bad("Изображение обязательно (WEBP до 50KB)");
+    }
 
     const value = makeSlug(name);
+
+    // Проверка на дубликаты в рамках категории — по name или value
+    const dup = await prisma.subCategory.findFirst({
+      where: { categoryId, OR: [{ name }, { value }] },
+      select: { id: true },
+    });
+    if (dup) return bad("Подкатегория с таким названием уже существует в выбранной категории");
+
     let image = null;
-    if (file && typeof file === "object") image = await saveImg(file);
+    try {
+      image = await saveImg(file);
+    } catch (e) {
+      if (String(e?.message) === "IMG_TOO_LARGE") return bad("Картинка больше 50KB");
+      throw e;
+    }
 
     const created = await prisma.subCategory.create({
-      data: { name, value, categoryId, h1, contentHtml, image },
+      data: {
+        name,
+        value,
+        categoryId,
+        h1,
+        contentHtml: contentHtml === null ? null : String(contentHtml),
+        image,
+      },
       include: { category: true },
     });
     return NextResponse.json({ ok: true, item: created });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ ok: false });
+    if (e.code === "P2002") {
+      return bad("Такая подкатегория уже существует");
+    }
+    return bad("Ошибка создания подкатегории", 500);
   }
 }
 
-/* ✅ PUT — новая логика обновления */
+/* ✅ PUT — обновить подкатегорию (все поля обязательны, кроме contentHtml) */
 export async function PUT(req) {
   try {
     await ensureDir();
     const { searchParams } = new URL(req.url);
     const id = Number(searchParams.get("id"));
-    if (!id) return NextResponse.json({ ok: false, error: "id" });
+    if (!id) return bad("id обязателен");
 
     const existing = await prisma.subCategory.findUnique({ where: { id } });
-    if (!existing) return NextResponse.json({ ok: false, error: "not found" });
+    if (!existing) return bad("Подкатегория не найдена", 404);
 
     const form = await req.formData();
-    const name = form.get("name");
+    const name = String(form.get("name") || "").trim();
     const categoryId = Number(form.get("categoryId"));
-    const h1 = form.get("h1") || null;
+    const h1 = String(form.get("h1") || "").trim();
     const contentHtml = form.get("contentHtml");
     const file = form.get("image");
 
+    if (!name) return bad("Поле name обязательно");
+    if (!categoryId) return bad("Поле categoryId обязательно");
+    if (!h1) return bad("Поле h1 обязательно");
+
     const value = makeSlug(name);
+
+    // Проверка на дубликаты в рамках категории среди других id
+    const dup = await prisma.subCategory.findFirst({
+      where: { categoryId, OR: [{ name }, { value }], NOT: { id } },
+      select: { id: true },
+    });
+    if (dup) return bad("Подкатегория с таким названием уже существует в выбранной категории");
 
     let image = existing.image;
     if (file && typeof file === "object") {
+      // заменяем старое изображение на новое — в системе всегда ОДНО
       await delImg(existing.image);
       image = await saveImg(file);
     }
 
     const data = { name, value, categoryId, h1, image };
-    if (contentHtml !== null) data.contentHtml = contentHtml;
+    if (contentHtml !== null) data.contentHtml = String(contentHtml);
 
     const updated = await prisma.subCategory.update({
       where: { id },
@@ -120,15 +163,20 @@ export async function PUT(req) {
     return NextResponse.json({ ok: true, item: updated });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ ok: false });
+    if (err.code === "P2002") {
+      return bad("Такая подкатегория уже существует");
+    }
+    return bad("Ошибка обновления подкатегории", 500);
   }
 }
 
-/* ✅ DELETE без изменений */
+/* ✅ DELETE */
 export async function DELETE(req) {
   try {
     const { searchParams } = new URL(req.url);
     const id = Number(searchParams.get("id"));
+    if (!id) return bad("id обязателен");
+
     const existing = await prisma.subCategory.findUnique({ where: { id } });
     if (existing?.image) await delImg(existing.image);
 
@@ -136,6 +184,6 @@ export async function DELETE(req) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ ok: false });
+    return bad("Ошибка удаления подкатегории", 500);
   }
 }

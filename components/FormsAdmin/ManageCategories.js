@@ -1,4 +1,4 @@
-// /components/FormsAdmin/ManageCategories.jsx
+// /components/FormsAdmin/ManageCategories.jsx — ПОЛНОСТЬЮ
 "use client";
 import { useEffect, useState } from "react";
 import {
@@ -54,6 +54,7 @@ export default function ManageCategories() {
   const [imageList, setImageList] = useState([]);
   const [editId, setEditId] = useState(null);
   const [initialImage, setInitialImage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const load = async () => {
     const r = await fetch("/api/admin/categories", { cache: "no-store" });
@@ -67,19 +68,25 @@ export default function ManageCategories() {
 
   const onFinish = async (v) => {
     try {
+      setLoading(true);
       const fd = new FormData();
-      fd.append("name", v.name);
-      fd.append("h1", v.h1 || "");
+      fd.append("name", v.name?.trim());
+      fd.append("h1", v.h1?.trim());
 
       if (contentHtml !== initialContentHtml) {
         fd.append("contentHtml", contentHtml);
       }
 
-      if (imageList.length) {
-        const f = imageList[0];
-        if (f.originFileObj) {
-          fd.append("image", f.originFileObj);
+      // Обязательно одно изображение (для POST обязательно, для PUT — если меняем)
+      if (!editId) {
+        if (!imageList.length || !imageList[0]?.originFileObj) {
+          message.error("Загрузите изображение категории (WEBP до 50KB)");
+          setLoading(false);
+          return;
         }
+        fd.append("image", imageList[0].originFileObj);
+      } else if (imageList.length && imageList[0]?.originFileObj) {
+        fd.append("image", imageList[0].originFileObj);
       }
 
       let url = "/api/admin/categories";
@@ -102,6 +109,8 @@ export default function ManageCategories() {
     } catch (e) {
       console.error(e);
       message.error("Ошибка сохранения");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -153,18 +162,27 @@ export default function ManageCategories() {
     <div className="space-y-10">
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Form.Item
-          label={editId ? "Редактировать категорию" : "Название категории"}
+          label={editId ? "Редактировать категорию" : "Название категории *"}
           name="name"
-          rules={[{ required: true }]}
+          rules={[{ required: true, message: "Введите название категории" }]}
         >
           <Input placeholder="Например: Фигурки" />
         </Form.Item>
 
-        <Form.Item label="H1" name="h1">
+        <Form.Item
+          label="H1 *"
+          name="h1"
+          rules={[{ required: true, message: "Введите H1" }]}
+        >
           <Input placeholder="Аниме фигурки в Минске" />
         </Form.Item>
 
-        <Form.Item label="Изображение категории (WEBP до 50KB)">
+        <Form.Item
+          label="Изображение категории (WEBP до 50KB) *"
+          required
+          validateStatus={!editId && imageList.length === 0 ? "error" : ""}
+          help={!editId && imageList.length === 0 ? "Загрузите изображение" : ""}
+        >
           <Upload
             accept="image/*"
             listType="picture"
@@ -192,11 +210,11 @@ export default function ManageCategories() {
           </Upload>
         </Form.Item>
 
-        <div className="mb-2 font-semibold">Контент на странице категории (SEO)</div>
+        <div className="mb-2 font-semibold">Контент на странице категории (SEO, необязательно)</div>
         <CKeditor value={contentHtml} onChange={setContentHtml} />
 
         <div className="flex gap-4 py-4">
-          <Button type="primary" htmlType="submit">
+          <Button type="primary" htmlType="submit" loading={loading}>
             {editId ? "Сохранить изменения" : "Сохранить"}
           </Button>
 

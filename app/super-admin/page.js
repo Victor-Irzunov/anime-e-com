@@ -1,4 +1,4 @@
-// /app/super-admin/page.jsx — ПОЛНОСТЬЮ ЗАМЕНИ
+// /app/super-admin/page.jsx — ПОЛНОСТЬЮ
 "use client";
 import Link from "next/link";
 import CreateProductForm from "@/components/FormsAdmin/CreateProductForm";
@@ -10,7 +10,7 @@ import ManageBrands from "@/components/FormsAdmin/ManageBrands";
 import HideAntdCompatWarning from "@/components/utils/HideAntdCompatWarning";
 import { useState } from "react";
 
-const page = () => {
+export default function Page() {
   const [isActive, setIsActive] = useState(false);
 
   return (
@@ -37,9 +37,7 @@ const page = () => {
           <div className="mt-10">
             <div className="collapse collapse-plus border border-base-300 bg-amber-100">
               <input type="checkbox" />
-              <div className="collapse-title text-xl font-medium">
-                Управление категориями
-              </div>
+              <div className="collapse-title text-xl font-medium">Управление категориями</div>
               <div className="collapse-content">
                 <ManageCategories />
               </div>
@@ -47,9 +45,7 @@ const page = () => {
 
             <div className="collapse collapse-plus border border-base-300 bg-yellow-100 mt-6">
               <input type="checkbox" />
-              <div className="collapse-title text-xl font-medium">
-                Управление подкатегориями
-              </div>
+              <div className="collapse-title text-xl font-medium">Управление подкатегориями</div>
               <div className="collapse-content">
                 <ManageSubCategories />
               </div>
@@ -57,9 +53,7 @@ const page = () => {
 
             <div className="collapse collapse-plus border border-base-300 bg-orange-100 mt-6">
               <input type="checkbox" />
-              <div className="collapse-title text-xl font-medium">
-                Управление брендами (аниме)
-              </div>
+              <div className="collapse-title text-xl font-medium">Управление брендами (аниме)</div>
               <div className="collapse-content">
                 <ManageBrands />
               </div>
@@ -93,6 +87,4 @@ const page = () => {
       </section>
     </>
   );
-};
-
-export default page;
+}
