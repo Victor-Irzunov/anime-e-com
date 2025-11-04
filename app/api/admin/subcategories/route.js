@@ -37,13 +37,35 @@ function bad(msg, code = 400) {
   return NextResponse.json({ ok: false, error: msg }, { status: code });
 }
 
-/* ✅ GET — полностью рабочий */
+/* ✅ GET — теперь поддерживает фильтры:
+   - ?categoryId=1           — все подкатегории категории
+   - ?value=nedoroids        — конкретная подкатегория по slug
+   - ?value=...&category=... — конкретная подкатегория в категории (по slug'ам)
+*/
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const categoryId = searchParams.get("categoryId");
-    const where = categoryId ? { categoryId: Number(categoryId) } : {};
+    const categoryIdParam = searchParams.get("categoryId");
+    const valueParam = searchParams.get("value");
+    const categoryValueParam = searchParams.get("category");
 
+    // Точный выбор по slug подкатегории (и опционально slug категории)
+    if (valueParam) {
+      const where = {
+        value: String(valueParam),
+        ...(categoryValueParam
+          ? { category: { value: String(categoryValueParam) } }
+          : {}),
+      };
+      const item = await prisma.subCategory.findFirst({
+        where,
+        include: { category: true },
+      });
+      return NextResponse.json({ ok: true, items: item ? [item] : [] });
+    }
+
+    // Листинг по categoryId (как раньше)
+    const where = categoryIdParam ? { categoryId: Number(categoryIdParam) } : {};
     const items = await prisma.subCategory.findMany({
       where,
       orderBy: [{ categoryId: "asc" }, { name: "asc" }],
@@ -146,7 +168,6 @@ export async function PUT(req) {
 
     let image = existing.image;
     if (file && typeof file === "object") {
-      // заменяем старое изображение на новое — в системе всегда ОДНО
       await delImg(existing.image);
       image = await saveImg(file);
     }

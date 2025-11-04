@@ -1,3 +1,4 @@
+// /app/[category]/[subcategory]/ClientList.jsx — ПОЛНОСТЬЮ
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -25,9 +26,9 @@ function normalizeSrc(raw) {
 
 export default function ClientList({ category, subcategory }) {
   // Список товаров
-  const [products, setProducts] = useState([]); // всегда массив
+  const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [loaded, setLoaded] = useState(false); // флаг завершения загрузки
+  const [loaded, setLoaded] = useState(false);
 
   // Фильтры/сортировка/вид
   const [sortOption, setSortOption] = useState("");
@@ -73,11 +74,11 @@ export default function ClientList({ category, subcategory }) {
       setLoaded(true);
     });
 
-    // 2) H1/контент/картинка подкатегории
+    // 2) H1/контент/картинка подкатегории — ИСПРАВЛЕНО: точный запрос по value+category
     (async () => {
       try {
         const r = await fetch(
-          `/api/admin/subcategories?value=${encodeURIComponent(subcategory)}`,
+          `/api/admin/subcategories?value=${encodeURIComponent(subcategory)}&category=${encodeURIComponent(category)}`,
           { cache: "no-store" }
         );
         const j = await r.json();
@@ -110,17 +111,14 @@ export default function ClientList({ category, subcategory }) {
   const applyFilters = () => {
     let list = [...products];
 
-    // цена
     if (priceRange.from !== "")
       list = list.filter((p) => Number(p.price) >= parseFloat(priceRange.from));
     if (priceRange.to !== "")
       list = list.filter((p) => Number(p.price) <= parseFloat(priceRange.to));
 
-    // бренды
     if (selectedBrands.length > 0)
       list = list.filter((p) => selectedBrands.includes(p.brand));
 
-    // сортировка
     if (sortOption === "PriceLowToHigh")
       list.sort((a, b) => Number(a.price) - Number(b.price));
     if (sortOption === "PriceHighToLow")
@@ -128,13 +126,14 @@ export default function ClientList({ category, subcategory }) {
     if (sortOption === "Rating")
       list.sort((a, b) => Number(b.rating) - Number(a.rating));
 
-    // пагинация
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage;
 
     setFilteredProducts(list.slice(start, end));
     setTotalItems(list.length);
   };
+
+  const unoptHero = typeof heroImage === "string" && heroImage.startsWith("/uploads/");
 
   return (
     <div className="container mx-auto pt-2 pb-20">
@@ -152,6 +151,7 @@ export default function ClientList({ category, subcategory }) {
           priority
           className="object-cover"
           sizes="100vw"
+          unoptimized={unoptHero}  // важно для прод при /uploads/...
         />
       </section>
 
@@ -161,7 +161,6 @@ export default function ClientList({ category, subcategory }) {
       </h1>
 
       {!loaded ? (
-        // Спиннер показываем ТОЛЬКО пока действительно грузим
         <div className="p-12 flex min-h-88">
           <span className="m-auto loading loading-ring loading-lg"></span>
         </div>
