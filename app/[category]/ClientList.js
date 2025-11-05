@@ -8,6 +8,7 @@ import { RiLayoutGridLine, RiListCheck2, RiFilter2Line } from "react-icons/ri";
 
 export default function ClientList({ category, title = "" }) {
   const [products, setProducts] = useState(null);
+  const [brandsAll, setBrandsAll] = useState([]); // ← НОВОЕ
   const [filteredProducts, setFilteredProducts] = useState(null);
   const [sortOption, setSortOption] = useState("");
   const [selectedBrands, setSelectedBrands] = useState([]);
@@ -24,20 +25,31 @@ export default function ClientList({ category, title = "" }) {
     setPriceRange({ from: "", to: "" });
     setSortOption("");
     setCurrentPage(1);
+    setBrandsAll([]); // сбрасываем бренды при смене категории
 
     (async () => {
       try {
         const r = await fetch(`/api/public/products?category=${encodeURIComponent(category)}`, { cache: "no-store" });
         const j = await r.json();
         if (j?.ok) {
-          setProducts(j.items || []);
-          setFilteredProducts(j.items || []);
-          setTotalItems((j.items || []).length);
+          const items = j.items || [];
+          setProducts(items);
+          setFilteredProducts(items);
+          setTotalItems(items.length);
+          // берём фасет брендов с сервера, если он есть
+          const br = Array.isArray(j.brands) ? j.brands : [];
+          setBrandsAll(br);
+        } else {
+          setProducts([]);
+          setFilteredProducts([]);
+          setTotalItems(0);
+          setBrandsAll([]);
         }
       } catch {
         setProducts([]);
         setFilteredProducts([]);
         setTotalItems(0);
+        setBrandsAll([]);
       }
     })();
   }, [category]);
@@ -61,7 +73,10 @@ export default function ClientList({ category, title = "" }) {
     if (priceRange.from !== "") list = list.filter((p) => p.price >= parseFloat(priceRange.from));
     if (priceRange.to !== "") list = list.filter((p) => p.price <= parseFloat(priceRange.to));
 
-    if (selectedBrands.length > 0) list = list.filter((p) => selectedBrands.includes(p.brand));
+    if (selectedBrands.length > 0) {
+      const setSel = new Set(selectedBrands.map((s) => s.toLowerCase().trim()));
+      list = list.filter((p) => setSel.has(String(p.brand || "").toLowerCase().trim()));
+    }
 
     if (sortOption === "PriceLowToHigh") list.sort((a, b) => a.price - b.price);
     if (sortOption === "PriceHighToLow") list.sort((a, b) => b.price - a.price);
@@ -75,13 +90,14 @@ export default function ClientList({ category, title = "" }) {
   };
 
   return (
-    <div className="container mx-auto pt-2 pb-20">
+    <div className="container mx-auto pt-20 pb-20">
       {products ? (
         <div className="px-2 py-4 flex relative">
           <div className=''>
             <div className="sd:block xz:hidden sticky top-10">
               <ProductFilterAside
                 products={products}
+                brandsAll={brandsAll} // ← НОВОЕ
                 onBrandFilterChange={handleBrandFilterChange}
                 onPriceChange={handlePriceChange}
                 onResetPriceFilter={handleResetPriceFilter}
@@ -99,9 +115,7 @@ export default function ClientList({ category, title = "" }) {
 
             {/* Панель сортировки + вид + мобильный фильтр */}
             <div className="pt-[1.7rem] pb-2 flex flex-col items-center">
-
               <div className='flex justify-between w-full space-x-2'>
-
                 <div className="sd:hidden xz:block drawer z-40">
                   <input id="my-drawer4" type="checkbox" className="drawer-toggle" />
                   <div className="drawer-content">
@@ -119,6 +133,7 @@ export default function ClientList({ category, title = "" }) {
                       <ProductFilterAside
                         hidden
                         products={products}
+                        brandsAll={brandsAll} // ← НОВОЕ
                         onBrandFilterChange={handleBrandFilterChange}
                         onPriceChange={handlePriceChange}
                         onResetPriceFilter={handleResetPriceFilter}
@@ -129,7 +144,6 @@ export default function ClientList({ category, title = "" }) {
                     </div>
                   </div>
                 </div>
-
 
                 {/* Сортировка + переключатель вида */}
                 <div className="flex justify-between items-center gap-2 w-full mb-8">
@@ -149,16 +163,14 @@ export default function ClientList({ category, title = "" }) {
 
                   <div className="join space-x-2">
                     <button
-                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${isListView ? "bg-gray-200" : ""
-                        }`}
+                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${isListView ? "bg-gray-200" : ""}`}
                       onClick={() => setIsListView(true)}
                       aria-label="Список"
                     >
                       <RiListCheck2 />
                     </button>
                     <button
-                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${!isListView ? "bg-gray-200" : ""
-                        }`}
+                      className={`btn btn-outline border-gray-300 bg-white py-2 px-3 min-h-0 h-10 rounded-lg join-item ${!isListView ? "bg-gray-200" : ""}`}
                       onClick={() => setIsListView(false)}
                       aria-label="Плитка"
                     >
@@ -168,7 +180,6 @@ export default function ClientList({ category, title = "" }) {
                 </div>
 
               </div>
-
             </div>
 
             <ProductList

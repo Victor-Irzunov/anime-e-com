@@ -31,7 +31,7 @@ function CategoryMenu() {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "";
 
   return (
-    <div className="border-b border-b-gray-300 bg-white sd:block xz:hidden">
+    <div className="border-b border-b-gray-300 bg-white sd:block xz:hidden pt-16">
       <div className="container mx-auto">
         <div className="layout-w px-2">
           <div className="py-3">
@@ -126,7 +126,8 @@ function CategoryMenu() {
                     {/* ссылка категории */}
                     <Link
                       href={`${base}/${cat.value}`}
-                      className="hover:opacity-80 transition-opacity py-2 inline-block"
+                      className="hover:opacity-80 transition-opacity py-2 inline-block btn rounded-xl"
+                      style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", color: "#001B2F" }}
                     >
                       {cat.name}
                     </Link>

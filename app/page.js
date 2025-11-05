@@ -38,7 +38,7 @@ export const metadata = {
 
 export default function Home() {
   return (
-    <main className="relative overflow-hidden">
+    <main className="relative overflow-hidden pt-16">
       {/* Фоновая «неон-аура» */}
       <div
         aria-hidden
@@ -58,23 +58,31 @@ export default function Home() {
             <div className='flex sd:justify-start xz:justify-center'>
               <span className="inline-block text-[10px] sd:text-xs tracking-widest uppercase mb-3 px-3 py-1 rounded-full"
                 style={{ background: "#1C7EEC10", color: "#1C7EEC" }}>
-                Аниме-магазин в Минске
+                Аниме-магазины в Минске
               </span>
             </div>
 
             <h1 className="font-extrabold leading-[1.1] text-[clamp(28px,7vw,56px)] xz:text-center sd:text-left">
               <span className="block"
                 style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", WebkitBackgroundClip: "text", color: "transparent" }}>
-                Аниме фигурки в Минске
-              </span>
-              <span className="block mt-1 text-gray-600 text-[clamp(18px,5vw,34px)]">
-                Новинки, мерч и предзаказы
+                Аниме магазин в Минске
               </span>
             </h1>
 
             <p className="mt-4 sd:text-lg xz:text-sm text-gray-700  max-w-prose">
-              Фигурки по топ-тайтлам, мягкие игрушки, коврики, постеры и аксессуары.
-              Самовывоз из ТЦ, курьер по Минску, почта по Беларуси. Бережная упаковка и быстрая связь.
+              💙 У нас вы найдете разные фандомы!
+            </p>
+            <p className="mt-2 sd:text-lg xz:text-sm text-gray-700  max-w-prose">
+              💙 Большой выбор мерча.
+            </p>
+            <p className="mt-2 sd:text-lg xz:text-sm text-gray-700  max-w-prose">
+              💙 Самовывоз из ТЦ
+            </p>
+            <p className="mt-2 sd:text-lg xz:text-sm text-gray-700  max-w-prose">
+              💙 Курьер по Минску
+            </p>
+            <p className="mt-2 sd:text-lg xz:text-sm text-gray-700  max-w-prose">
+              💙 Почта по РБ
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -96,7 +104,7 @@ export default function Home() {
 
             <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
               {[
-                "Оригинальные и качественные реплики",
+                "Хорошие цены",
                 "Изготовление магнитов и мерча",
                 "Самовывоз и быстрая доставка",
               ].map((t, i) => (
@@ -136,54 +144,7 @@ export default function Home() {
         <CategoriesGrid />
       </section>
 
-      {/* ==== ПРОМО-БЛОК О ПРЕДЗАКАЗАХ ==== */}
-      {/* <section className="container mx-auto sd:px-0 xz:px-3">
-        <div className="rounded-3xl p-5 md:p-10 relative overflow-hidden border" style={{ borderColor: "#27E9E244" }}>
-          <div aria-hidden className="absolute -z-10 -right-20 -top-20 w-[320px] sd:w-[420px] h-80 sd:h-[420px] rounded-full blur-3xl"
-            style={{ background: "radial-gradient(50% 50% at 50% 50%, #27E9E2, transparent 70%)" }} />
-          <div className="md:flex items-center gap-8">
-            <div className="md:w-2/3">
-              <h2 className="text-[clamp(22px,5.2vw,40px)] font-semibold">Предзаказ редких фигурок</h2>
-              <p className="mt-3 text-gray-600 ">
-                Ищете конкретного персонажа? Оформите предзаказ — подскажем сроки поставки,
-                закрепим позицию и сообщим о прибытии.
-              </p>
-              <div className="mt-6 flex sd:flex-row xz:flex-col gap-3">
-      
-                <BtnComp
-                  title="Оформить предзаказ"
-                  index="preorder"
-                  name="Заявка на предзаказ фигурки"
-                  color="bg-gradient-to-r from-[#27E9E2] to-[#1C7EEC] text-[#001B2F]"
-                  small
-                  img
-                />
-                <a
-                  href="https://t.me/akanianime"
-                  target="_blank"
-                  rel="noopener"
-                  className="px-6 py-3 rounded-xl font-semibold border text-center"
-                  style={{ borderColor: "#27E9E2AA", color: "#27E9E2" }}
-                >
-                  Telegram-канал
-                </a>
-              </div>
-            </div>
-        
-            <div className="sd:w-1/3 mt-6 sd:mt-0">
-              <Image
-                src="/images/anime/preorder.webp"
-                alt="Предзаказ аниме фигурок"
-                width={500}
-                height={400}
-                sizes="(max-width: 1024px) 50vw, 500px"
-                className="rounded-2xl mx-auto"
-                loading="lazy"
-              />
-            </div>
-          </div>
-        </div>
-      </section> */}
+     
 
       {/* ==== НОВАЯ СЕКЦИЯ: TELEGRAM ==== */}
       <section className="container mx-auto sd:py-14 xz:py-8 sd:px-0 xz:px-3">
@@ -218,7 +179,7 @@ export default function Home() {
                   className="px-6 py-3 rounded-xl font-semibold border inline-flex items-center gap-2"
                   style={{ borderColor: "#1CB0E9", color: "#1CB0E9" }}
                 >
-              
+
                   Telegram-канал
                   <Image src='/images/svg/telegram.svg' alt='telegram' width={30} height={30} />
                 </a>
@@ -329,7 +290,7 @@ export default function Home() {
         </div>
       </section>
 
-      <VoprosOtvet />
+      {/* <VoprosOtvet /> */}
 
       {/* ==== JSON-LD ==== */}
       <Script id="ld-localbusiness" type="application/ld+json"

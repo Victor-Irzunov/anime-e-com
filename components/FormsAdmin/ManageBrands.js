@@ -39,7 +39,7 @@ export default function ManageBrands() {
 
       const j = await r.json();
       if (j?.ok) {
-        message.success(editId ? "Бренд обновлён" : "Бренд сохранён");
+        message.success(editId ? "Фандом обновлён" : "Фандом сохранён");
         resetForm();
         load();
       } else {
@@ -71,7 +71,7 @@ export default function ManageBrands() {
     <div className="space-y-6">
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Form.Item
-          label={editId ? "Редактирование бренда" : "Название бренда (аниме)"}
+          label={editId ? "Редактирование Фандома" : "Название Фандома (аниме)"}
           name="name"
           rules={[{ required: true, message: "Введите название" }]}
         >

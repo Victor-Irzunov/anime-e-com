@@ -74,7 +74,7 @@ export default async function CategoryPage({ params }) {
   const imgSrc = normalizeSrc(cat.image); // /uploads/<file> или плейсхолдер
 
   return (
-    <main className="pt-2 pb-10">
+    <main className="pt-20 pb-10">
       <div className="container mx-auto">
         {/* Хлебные крошки СВЕРХУ */}
         <Breadcrumbs />
@@ -97,7 +97,10 @@ export default async function CategoryPage({ params }) {
         </section>
 
         {/* H1 ПОД изображением */}
-        <h1 className="text-center font-extrabold tracking-tight sd:text-5xl xz:text-3xl mt-6">
+        <h1
+          className="text-center tracking-tight sd:text-5xl xz:text-3xl mt-6"
+           style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", WebkitBackgroundClip: "text", color: "transparent" }}
+        >
           {title}
         </h1>
 

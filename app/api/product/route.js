@@ -1,8 +1,5 @@
-// /app/api/product/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-
-
 
 /* helpers */
 function toBool(v) {
@@ -36,12 +33,20 @@ function safeStr(v, max = 255) {
   return s.length > max ? s.slice(0, max) : s;
 }
 
-/* === GET: список с поддержкой фильтра по slug'ам === */
+/* === GET: список с поддержкой фильтров (категория/подкатегория/НОВИНКИ) === */
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
+
+    // фильтр по slug'ам
     const catSlug = searchParams.get("category");    // figurki
     const subSlug = searchParams.get("subcategory"); // statichnie-igrushki
+
+    // ФИЛЬТР НОВИНОК: ?new=1 или ?days=10
+    const isNewOnly = toBool(searchParams.get("new"));
+    const daysParam = searchParams.get("days");
+    const days = Number.isFinite(Number(daysParam)) ? Math.max(1, Number(daysParam)) : (isNewOnly ? 10 : null);
+    const createdFrom = days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000) : null;
 
     const AND = [];
 
@@ -71,6 +76,10 @@ export async function GET(req) {
           sub ? { subcategory: sub.name } : { subcategory: String(subSlug) },
         ].filter(Boolean),
       });
+    }
+
+    if (createdFrom) {
+      AND.push({ createdAt: { gte: createdFrom } });
     }
 
     const where = AND.length ? { AND } : undefined;

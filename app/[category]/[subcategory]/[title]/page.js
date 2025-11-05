@@ -112,7 +112,7 @@ export default async function Page({ params }) {
   };
 
   return (
-    <main className="pb-10">
+    <main className="pb-28">
       <div className="container mx-auto pt-4">
         <BackButton />
       </div>

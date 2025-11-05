@@ -137,38 +137,7 @@ function ProductListSingle({ product = {}, isListView, categorySlug, subcategory
 
         {/* Rating + stock + article */}
         <div className="mt-2 flex sd:flex-row xz:flex-col xz:space-y-1 sd:space-y-0 sd:items-center xz:items-start justify-between">
-          {/* rating half (xs) */}
-          <div className="flex items-center gap-2">
-            <div className="rating rating-xs rating-half">
-              <input type="radio" name={`rating-${product.id}`} className="rating-hidden hidden" aria-label="no rating" />
-              {Array.from({ length: 10 }).map((_, i) => {
-                const half = (i % 2) === 0 ? "mask-half-1" : "mask-half-2";
-                const label =
-                  i === 0 ? "0.5 star" :
-                    i === 1 ? "1 star" :
-                      i === 2 ? "1.5 star" :
-                        i === 3 ? "2 star" :
-                          i === 4 ? "2.5 star" :
-                            i === 5 ? "3 star" :
-                              i === 6 ? "3.5 star" :
-                                i === 7 ? "4 star" :
-                                  i === 8 ? "4.5 star" : "5 star";
-                const idx = i + 1;
-                return (
-                  <input
-                    key={i}
-                    type="radio"
-                    name={`rating-${product.id}`}
-                    className={`mask mask-star-2 ${half} ${idx <= halfSteps ? "bg-orange-500" : ""}`}
-                    aria-label={label}
-                    readOnly
-                    defaultChecked={idx === (halfSteps || 10)} // если 0 — пусть покажет 5 как дефолт? лучше 0: не отмечать
-                  />
-                );
-              })}
-            </div>
-            <span className="text-sm text-gray-500">{ratingVal.toFixed(1)}</span>
-          </div>
+          
 
           {/* stock */}
           <div className="flex items-center gap-2 sd:pl-0 xz:pl-0.5">

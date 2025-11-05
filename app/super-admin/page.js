@@ -53,7 +53,7 @@ export default function Page() {
 
             <div className="collapse collapse-plus border border-base-300 bg-orange-100 mt-6">
               <input type="checkbox" />
-              <div className="collapse-title text-xl font-medium">Управление брендами (аниме)</div>
+              <div className="collapse-title text-xl font-medium">Управление Фандомами (аниме)</div>
               <div className="collapse-content">
                 <ManageBrands />
               </div>

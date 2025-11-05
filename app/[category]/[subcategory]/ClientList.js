@@ -136,7 +136,7 @@ export default function ClientList({ category, subcategory }) {
   const unoptHero = typeof heroImage === "string" && heroImage.startsWith("/uploads/");
 
   return (
-    <div className="container mx-auto pt-2 pb-20">
+    <div className="container mx-auto pt-20 pb-20">
       <Breadcrumbs />
 
       {/* === HERO на фото подкатегории (без затемнения) === */}
@@ -156,7 +156,10 @@ export default function ClientList({ category, subcategory }) {
       </section>
 
       {/* H1 ПОД изображением */}
-      <h1 className="text-center font-extrabold tracking-tight sd:text-5xl xz:text-3xl mt-8 mb-10">
+      <h1
+        className="text-center tracking-tight sd:text-5xl xz:text-3xl mt-8 mb-10"
+         style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", WebkitBackgroundClip: "text", color: "transparent" }}
+      >
         {h1}
       </h1>
 

@@ -3,6 +3,7 @@ import { RiArrowDownSLine } from "react-icons/ri";
 
 function ProductFilterAside({
   products,
+  brandsAll = [], // ← НОВОЕ: готовый список брендов с бэка
   onBrandFilterChange,
   onPriceChange,
   onResetPriceFilter,
@@ -12,6 +13,17 @@ function ProductFilterAside({
 }) {
   // Нормализуем вход: может прийти массив, а может {items: []}
   const list = Array.isArray(products) ? products : products?.items || [];
+
+  // Фолбэк, если API не вернул brands: соберём из товаров (с учётом регистра/пробелов)
+  const fallbackBrands = [...new Set(
+    list
+      .map((p) => String(p.brand || "").trim())
+      .filter(Boolean)
+      .map((b) => b) // уже нормализовано в trim
+  )].sort((a, b) => a.localeCompare(b, "ru", { sensitivity: "base" }));
+
+  // Итоговый источник брендов
+  const brandOptions = (Array.isArray(brandsAll) && brandsAll.length ? brandsAll : fallbackBrands);
 
   const handleBrandCheckboxChange = (brand) => {
     const updated = selectedBrands.includes(brand)
@@ -29,13 +41,13 @@ function ProductFilterAside({
       <div className="mt-1 flex flex-col gap-4">
         <details className="overflow-hidden rounded-lg border border-gray-300 bg-white" open>
           <summary className="flex cursor-pointer items-center justify-between gap-2 p-4 text-gray-900">
-            <span className="text-sm font-medium">Бренды</span>
+            <span className="text-sm font-medium">Фандомы</span>
             <RiArrowDownSLine fontSize={18} />
           </summary>
 
           <div className="border-t border-gray-200">
             <header className="flex items-center justify-between p-4">
-              <span className="text-sm text-gray-700">Бренд</span>
+              <span className="text-sm text-gray-700">Фандом</span>
               <button
                 type="button"
                 className="text-sm text-gray-900 underline underline-offset-4"
@@ -45,9 +57,9 @@ function ProductFilterAside({
               </button>
             </header>
 
-            <div className="border-t border-gray-200 p-4 flex flex-col gap-2">
-              {list.length > 0 &&
-                [...new Set(list.map((p) => p.brand).filter(Boolean))].map((brand, idx) => (
+            <div className="border-t border-gray-200 p-4 flex flex-col gap-2 max-h-[420px] overflow-auto">
+              {brandOptions.length > 0 ? (
+                brandOptions.map((brand, idx) => (
                   <label key={`${brand}-${idx}`} htmlFor={`brand_${idx}`} className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -58,7 +70,10 @@ function ProductFilterAside({
                     />
                     <span className="text-sm font-medium text-gray-700">{brand}</span>
                   </label>
-                ))}
+                ))
+              ) : (
+                <span className="text-sm text-gray-500">Фандомов не найдено</span>
+              )}
             </div>
           </div>
         </details>
