@@ -9,9 +9,8 @@ import phoneNumbers from "@/config/config";
 const abs = (u) =>
   /^https?:\/\//i.test(u || "")
     ? u
-    : `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}${
-        u?.startsWith("/") ? "" : "/"
-      }${u || ""}`;
+    : `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}${u?.startsWith("/") ? "" : "/"
+    }${u || ""}`;
 
 const SMALL_TOP_H = 30; // верхняя тонкая панель высотой ~34px
 const MAIN_TOP_H = 56;  // панель с логотипом и поиском ~56px
@@ -134,10 +133,10 @@ export default function TopBarFixedMobile() {
 
             <div
               tabIndex={0}
-              className="dropdown-content mt-1 rounded-xl shadow-2xl bg-[#0E1930] border border-[#1C7EEC44] w-[92vw] max-w-none"
+              className="dropdown-content mt-1 rounded-xl shadow-2xl bg-white border border-[#1C7EEC44] w-[92vw] max-w-none"
             >
               <div className="p-4">
-                <p className="text-white/80 text-sm font-semibold">
+                <p className="text-sm font-semibold">
                   Помощь и информация
                 </p>
                 <hr className="my-3 border-white/10" />
@@ -145,7 +144,7 @@ export default function TopBarFixedMobile() {
                   <li>
                     <Link
                       href="/dostavka-i-oplata"
-                      className="text-white/90 hover:text-white hover:underline underline-offset-4"
+                      className="hover:underline underline-offset-4"
                     >
                       Доставка и оплата
                     </Link>
@@ -153,43 +152,29 @@ export default function TopBarFixedMobile() {
                   <li>
                     <Link
                       href="/vozvrat-i-garantii"
-                      className="text-white/90 hover:text-white hover:underline underline-offset-4"
+                      className="hover:underline underline-offset-4"
                     >
                       Возврат и гарантии
+                    </Link>
+                  </li>
+
+                  <li>
+                    <Link
+                      href="/novinki"
+                      className="hover:underline underline-offset-4"
+                    >
+                      Новинки
                     </Link>
                   </li>
                   <li>
                     <Link
                       href="/o-kompanii"
-                      className="text-white/90 hover:text-white hover:underline underline-offset-4"
+                      className="hover:underline underline-offset-4"
                     >
                       О компании
                     </Link>
                   </li>
-                  <li>
-                    <Link
-                      href="/polzovatelskoe-soglashenie"
-                      className="text-white/90 hover:text-white hover:underline underline-offset-4"
-                    >
-                      Пользовательское соглашение
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/kontakty"
-                      className="text-white/90 hover:text-white hover:underline underline-offset-4"
-                    >
-                      Контакты
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/personal-info"
-                      className="text-white/90 hover:text-white hover:underline underline-offset-4"
-                    >
-                      Политика конфиденциальности
-                    </Link>
-                  </li>
+
                 </ul>
               </div>
             </div>
@@ -245,23 +230,33 @@ export default function TopBarFixedMobile() {
               />
             </Link>
 
-            {/* ПОИСК */}
-            <div className="flex-1">
+            <div className="flex-1 relative">
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onFocus={() => {
                   if (items.length) setOpen(true);
                 }}
-                className="w-full h-9 rounded-full border border-gray-300 bg-white px-3 text-sm outline-none placeholder:text-gray-400"
+                className="w-full h-9 rounded-full border border-gray-300 bg-white pl-3 pr-10 text-sm outline-none placeholder:text-gray-400"
                 placeholder="Я хочу купить…"
                 aria-label="Поиск товара"
               />
+              {/* Лупа как КАРТИНКА, не кнопка */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-2 top-1.5 inline-flex h-6 w-6 items-center justify-center"
+              >
+                <Image
+                  src="/images/svg/search.svg" // положи файл в /public/images/svg/search.svg
+                  alt=""
+                  width={16}
+                  height={16}
+                  priority={false}
+                />
+              </span>
             </div>
 
-            <span className="">
-              <Image src='/images/svg/heart.svg' alt='Сердце' width={20} height={20} />
-            </span>
+
           </div>
         </div>
       </div>

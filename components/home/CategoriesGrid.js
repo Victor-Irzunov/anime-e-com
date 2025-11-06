@@ -39,10 +39,10 @@ export default async function CategoriesGrid() {
 
                 {/* Под изображением: h3 и ссылка — центрируем, без теней и бордеров */}
                 <div className="pt-3 flex flex-col items-center text-center">
-                  <h3 className="font-semibold tracking-wide text-[15px] sd:text-[16px] uppercase text-[#5b2a86]">
+                  <h3 className="font-semibold tracking-wide text-[15px] sd:text-[16px] uppercase text-secondary">
                     {c.name}
                   </h3>
-                  <p className="mt-1 text-[13px] sd:text-[14px] text-[#7a4bb1]">{count} товаров</p>
+                  <p className="mt-1 text-[13px] sd:text-[14px] text-primary">{count} товаров</p>
                 </div>
               </article>
             </Link>
