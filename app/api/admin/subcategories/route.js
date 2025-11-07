@@ -1,4 +1,3 @@
-// /app/api/admin/subcategories/route.js — ПОЛНОСТЬЮ
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import CyrillicToTranslit from "cyrillic-to-translit-js";
@@ -37,10 +36,10 @@ function bad(msg, code = 400) {
   return NextResponse.json({ ok: false, error: msg }, { status: code });
 }
 
-/* ✅ GET — теперь поддерживает фильтры:
-   - ?categoryId=1           — все подкатегории категории
-   - ?value=nedoroids        — конкретная подкатегория по slug
-   - ?value=...&category=... — конкретная подкатегория в категории (по slug'ам)
+/* ✅ GET — поддерживает фильтры:
+   - ?categoryId=1
+   - ?value=nedoroids
+   - ?value=...&category=... (оба slug)
 */
 export async function GET(req) {
   try {
@@ -49,13 +48,10 @@ export async function GET(req) {
     const valueParam = searchParams.get("value");
     const categoryValueParam = searchParams.get("category");
 
-    // Точный выбор по slug подкатегории (и опционально slug категории)
     if (valueParam) {
       const where = {
         value: String(valueParam),
-        ...(categoryValueParam
-          ? { category: { value: String(categoryValueParam) } }
-          : {}),
+        ...(categoryValueParam ? { category: { value: String(categoryValueParam) } } : {}),
       };
       const item = await prisma.subCategory.findFirst({
         where,
@@ -64,7 +60,6 @@ export async function GET(req) {
       return NextResponse.json({ ok: true, items: item ? [item] : [] });
     }
 
-    // Листинг по categoryId (как раньше)
     const where = categoryIdParam ? { categoryId: Number(categoryIdParam) } : {};
     const items = await prisma.subCategory.findMany({
       where,

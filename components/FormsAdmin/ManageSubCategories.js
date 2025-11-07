@@ -1,4 +1,3 @@
-// /components/FormsAdmin/ManageSubCategories.jsx — ПОЛНОСТЬЮ
 "use client";
 import { useEffect, useState } from "react";
 import {
@@ -17,8 +16,24 @@ import { UploadOutlined } from "@ant-design/icons";
 import CKeditor from "@/components/Editor/CKeditor";
 import Resizer from "react-image-file-resizer";
 
-const MAX_BYTES = 50 * 1024;
+/** === НАСТРОЙКИ И КОНСТАНТЫ (как в категориях) === */
+const MAX_BYTES = 50 * 1024;            // конечный размер webp-файла (на бэке тоже 50KB)
+const MAX_SRC_BYTES = 12 * 1024 * 1024; // ограничим исходник (12MB), чтобы не падала вкладка
+const TARGET_W = 800;
+const TARGET_H = 800;
+const TARGET_QUALITY = 70;
 
+/** ДОБАВЛЕН JPG + явная фильтрация форматов */
+const ALLOWED_MIME = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/bmp",
+]);
+
+/** === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ === */
 function dataURLtoFile(dataurl, filename) {
   const arr = dataurl.split(",");
   const mimeMatch = arr[0].match(/:(.*?);/);
@@ -30,15 +45,16 @@ function dataURLtoFile(dataurl, filename) {
   return new File([u8arr], filename, { type: mime });
 }
 
-const resizeFile = (file) =>
+/** Базовый ресайзер в WEBP через react-image-file-resizer */
+const resizeToWebp = (file, width = TARGET_W, height = TARGET_H, quality = TARGET_QUALITY) =>
   new Promise((resolve, reject) => {
     try {
       Resizer.imageFileResizer(
         file,
-        800,
-        800,
+        width,
+        height,
         "WEBP",
-        70,
+        quality,
         0,
         (uri) => resolve(uri),
         "base64"
@@ -47,6 +63,61 @@ const resizeFile = (file) =>
       reject(err);
     }
   });
+
+/** Фолбэк-ресайзер через Canvas (на случай, если библиотека не справилась) */
+async function fallbackResizeToWebp(file, width = TARGET_W, height = TARGET_H, quality = TARGET_QUALITY) {
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) throw new Error("Не удалось прочитать изображение");
+
+  const ratio = Math.min(width / bitmap.width, height / bitmap.height, 1);
+  const w = Math.max(1, Math.round(bitmap.width * ratio));
+  const h = Math.max(1, Math.round(bitmap.height * ratio));
+
+  const off = new OffscreenCanvas(w, h);
+  const ctx = off.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0, w, h);
+
+  const blob = await off.convertToBlob({ type: "image/webp", quality: quality / 100 });
+  const b64 = await blobToBase64(blob);
+  return b64;
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
+/** Пытаемся сделать WEBP <= 50KB, понижая качество ступенчато */
+async function makeWebpUnderLimit(file) {
+  if (typeof file.size === "number" && file.size > MAX_SRC_BYTES) {
+    throw new Error(`Файл слишком большой (${Math.round(file.size / 1024 / 1024)}MB). Максимум 12MB.`);
+  }
+
+  const tryQualities = [70, 60, 50, 40, 30, 25, 20];
+  for (const q of tryQualities) {
+    try {
+      const base64 = await resizeToWebp(file, TARGET_W, TARGET_H, q);
+      const blobFile = dataURLtoFile(base64, "subcategory.webp");
+      if (blobFile.size <= MAX_BYTES) return blobFile;
+    } catch {
+      break;
+    }
+  }
+
+  for (const q of tryQualities) {
+    const base64 = await fallbackResizeToWebp(file, TARGET_W, TARGET_H, q);
+    const blobFile = dataURLtoFile(base64, "subcategory.webp");
+    if (blobFile.size <= MAX_BYTES) return blobFile;
+  }
+
+  const base64 = await fallbackResizeToWebp(file, TARGET_W, TARGET_H, 15);
+  const last = dataURLtoFile(base64, "subcategory.webp");
+  return last;
+}
 
 export default function ManageSubCategories() {
   const [form] = Form.useForm();
@@ -60,15 +131,23 @@ export default function ManageSubCategories() {
   const [loading, setLoading] = useState(false);
 
   const loadCats = async () => {
-    const r = await fetch("/api/admin/categories", { cache: "no-store" });
-    const j = await r.json();
-    if (j?.ok) setCats(j.items);
+    try {
+      const r = await fetch("/api/admin/categories", { cache: "no-store" });
+      const j = await r.json();
+      if (j?.ok) setCats(j.items);
+    } catch {
+      message.error("Не удалось загрузить категории");
+    }
   };
 
   const load = async () => {
-    const r = await fetch("/api/admin/subcategories", { cache: "no-store" });
-    const j = await r.json();
-    if (j?.ok) setItems(j.items);
+    try {
+      const r = await fetch("/api/admin/subcategories", { cache: "no-store" });
+      const j = await r.json();
+      if (j?.ok) setItems(j.items);
+    } catch {
+      message.error("Не удалось загрузить список подкатегорий");
+    }
   };
 
   useEffect(() => {
@@ -104,7 +183,7 @@ export default function ManageSubCategories() {
         fd.append("contentHtml", contentHtml);
       }
 
-      // Обязательно одно изображение (POST обязательно, PUT — если меняем)
+      // Изображение: обязательно для POST, опционально для PUT если меняем
       if (!editId) {
         if (!imageList.length || !imageList[0]?.originFileObj) {
           message.error("Загрузите изображение подкатегории (WEBP до 50KB)");
@@ -140,12 +219,16 @@ export default function ManageSubCategories() {
   };
 
   const remove = async (id) => {
-    const r = await fetch(`/api/admin/subcategories?id=${id}`, { method: "DELETE" });
-    const j = await r.json();
-    if (j?.ok) {
-      message.success("Удалено");
-      load();
-    } else message.error(j?.error || "Ошибка");
+    try {
+      const r = await fetch(`/api/admin/subcategories?id=${id}`, { method: "DELETE" });
+      const j = await r.json();
+      if (j?.ok) {
+        message.success("Удалено");
+        load();
+      } else message.error(j?.error || "Ошибка");
+    } catch {
+      message.error("Ошибка удаления");
+    }
   };
 
   const startEdit = (rec) => {
@@ -165,6 +248,48 @@ export default function ManageSubCategories() {
     } else {
       setImageList([]);
       setInitialImage(null);
+    }
+  };
+
+  /** === ЛОКАЛЬНЫЙ ХЭНДЛЕР ЗАГРУЗКИ ФАЙЛА (идентично категориям) === */
+  const handleBeforeUpload = async (file) => {
+    try {
+      if (file.type === "image/heic" || file.type === "image/heif") {
+        message.warning("HEIC/HEIF не поддерживается. Сохраните фото как JPG/PNG и попробуйте снова.");
+        return Upload.LIST_IGNORE;
+      }
+
+      if (!ALLOWED_MIME.has(file.type)) {
+        message.error("Допустимые форматы: JPG, PNG, WEBP, GIF, BMP");
+        return Upload.LIST_IGNORE;
+      }
+
+      if (typeof file.size === "number" && file.size > MAX_SRC_BYTES) {
+        message.error("Файл слишком большой. Максимум ~12MB.");
+        return Upload.LIST_IGNORE;
+      }
+
+      let webpFile = await makeWebpUnderLimit(file);
+
+      if (webpFile.size > MAX_BYTES) {
+        message.warning(
+          `После сжатия ${Math.round(webpFile.size / 1024)}KB > 50KB. Попробуйте исходник меньшего разрешения.`
+        );
+      }
+
+      setImageList([
+        {
+          uid: `${Date.now()}`,
+          name: "subcategory.webp",
+          originFileObj: webpFile,
+        },
+      ]);
+
+      return Upload.LIST_IGNORE;
+    } catch (e) {
+      console.error(e);
+      message.error("Не удалось обработать изображение. Попробуйте другой файл.");
+      return Upload.LIST_IGNORE;
     }
   };
 
@@ -210,24 +335,18 @@ export default function ManageSubCategories() {
           help={!editId && imageList.length === 0 ? "Загрузите изображение" : ""}
         >
           <Upload
-            accept="image/*"
+            accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,image/jpeg,image/jpg,image/png,image/webp,image/gif,image/bmp"
             listType="picture"
             maxCount={1}
             fileList={imageList}
-            beforeUpload={async (file) => {
-              const base64 = await resizeFile(file);
-              const blobFile = dataURLtoFile(base64, "subcategory.webp");
-              if (blobFile.size > MAX_BYTES) {
-                message.error("Картинка больше 50KB");
-                return Upload.LIST_IGNORE;
-              }
-              setImageList([{ uid: "1", name: blobFile.name, originFileObj: blobFile }]);
-              return Upload.LIST_IGNORE;
-            }}
+            beforeUpload={handleBeforeUpload}
             onRemove={() => setImageList([])}
           >
             <Button icon={<UploadOutlined />}>Загрузить</Button>
           </Upload>
+          <div className="text-xs text-gray-500 mt-2">
+            Советы: загружайте исходник до 10–12MB, без лишних EXIF; квадрат ~1000×1000 даст лучший результат ❤️
+          </div>
         </Form.Item>
 
         <div className="mb-2 font-semibold">SEO Контент (необязательно)</div>
@@ -262,7 +381,7 @@ export default function ManageSubCategories() {
             title: "Картинка",
             dataIndex: "image",
             render: (img) =>
-              img ? <AntImage src={`/uploads/${img}`} width={60} height={60} /> : "-",
+              img ? <AntImage src={`/uploads/${img}`} width={60} height={60} alt="subcat" /> : "-",
           },
           {
             title: "Действия",
