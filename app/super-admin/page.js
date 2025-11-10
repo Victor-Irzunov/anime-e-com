@@ -9,6 +9,7 @@ import ManageSubCategories from "@/components/FormsAdmin/ManageSubCategories";
 import ManageBrands from "@/components/FormsAdmin/ManageBrands";
 import HideAntdCompatWarning from "@/components/utils/HideAntdCompatWarning";
 import { useState } from "react";
+import DuplicateProductForm from "@/components/FormsAdmin/DuplicateProductForm";
 
 export default function Page() {
   const [isActive, setIsActive] = useState(false);
@@ -73,6 +74,15 @@ export default function Page() {
               <div className="collapse-content">
                 <GetProductForm setIsActive={setIsActive} />
                 <div className="mt-10">{isActive ? <EditProductForm /> : null}</div>
+              </div>
+            </div>
+
+            {/* 🔸 НОВАЯ СЕКЦИЯ: Быстрое копирование товара */}
+            <div className="collapse collapse-plus border border-base-300 bg-sky-100 mt-6">
+              <input type="checkbox" />
+              <div className="collapse-title text-xl font-medium">Быстрое копирование товара (цвета/варианты)</div>
+              <div className="collapse-content">
+                <DuplicateProductForm />
               </div>
             </div>
 
