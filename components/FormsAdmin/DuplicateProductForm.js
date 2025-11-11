@@ -13,6 +13,7 @@ import {
   Tag,
   Space,
   Typography,
+  notification,
 } from "antd";
 import { createProduct } from "@/http/adminAPI";
 import { transliterate } from "@/transliterate/transliterate";
@@ -213,7 +214,9 @@ export default function DuplicateProductForm() {
       params.set("categoryId", String(categoryId));
       params.set("subCategoryId", String(subCategoryId));
       if (brandId) params.set("brandId", String(brandId));
-      const r = await fetch(`/api/admin/products/by-cat?${params.toString()}`, { cache: "no-store" });
+      const r = await fetch(`/api/admin/products/by-cat?${params.toString()}`, {
+        cache: "no-store",
+      });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j?.ok) {
         message.error(j?.message || "Не удалось получить товары");
@@ -319,13 +322,18 @@ export default function DuplicateProductForm() {
 
       const data = await createProduct(fd);
       if (data) {
+        // уведомление админу
         message.success("Новый товар создан на основе выбранного");
-        // сбрасывать полностью не будем — удобно клепать серию цветов
-        // только очистим название и артикул, чтобы админ быстро менял цвет
-        form.setFieldsValue({
-          title: "",
-          article: "",
+        notification.success({
+          message: "Товар успешно создан",
+          description: `Новый товар «${values.title}» создан на основе выбранного образца.`,
+          placement: "topRight",
         });
+
+        // полная очистка формы и состояния после успешного создания
+        form.resetFields();
+        setPicked(null);
+        setGallery([]);
       }
     } catch (e) {
       console.error(e);
@@ -350,7 +358,9 @@ export default function DuplicateProductForm() {
       render: (t, r) => (
         <div>
           <div className="font-medium">{t}</div>
-          <div className="text-xs text-gray-500">{r.brand} • {r.category} / {r.subcategory}</div>
+          <div className="text-xs text-gray-500">
+            {r.brand} • {r.category} / {r.subcategory}
+          </div>
         </div>
       ),
     },
@@ -387,7 +397,9 @@ export default function DuplicateProductForm() {
       width: 140,
       render: (_t, r) => (
         <Space>
-          <Button size="small" onClick={() => onPickProduct(r)}>Выбрать</Button>
+          <Button size="small" onClick={() => onPickProduct(r)}>
+            Выбрать
+          </Button>
         </Space>
       ),
     },
@@ -395,7 +407,9 @@ export default function DuplicateProductForm() {
 
   return (
     <div className="px-1">
-      <Title level={4} className="mb-3">Быстрое копирование товара (варианты цвета)</Title>
+      <Title level={4} className="mb-3">
+        Быстрое копирование товара (варианты цвета)
+      </Title>
 
       {/* ФИЛЬТР ПО КАТЕГОРИЯМ/БРЕНДУ */}
       <div className="grid sd:grid-cols-3 xz:grid-cols-1 gap-3 mb-4">
@@ -448,7 +462,9 @@ export default function DuplicateProductForm() {
       {/* ФОРМА НОВОГО ТОВАРА (ПО ОБРАЗЦУ) */}
       <div className="mt-10 border border-base-300 rounded-lg p-4 bg-emerald-50">
         <Title level={5} className="mb-3">
-          {picked ? `Создать новый товар по образцу: #${picked.id} — ${picked.title}` : "Выберите товар-образец из списка выше"}
+          {picked
+            ? `Создать новый товар по образцу: #${picked.id} — ${picked.title}`
+            : "Выберите товар-образец из списка выше"}
         </Title>
 
         <Form
