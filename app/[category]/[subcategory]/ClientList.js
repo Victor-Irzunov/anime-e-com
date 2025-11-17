@@ -24,9 +24,13 @@ function normalizeSrc(raw) {
   return `/uploads/${raw}`;
 }
 
-export default function ClientList({ category, subcategory }) {
+export default function ClientList({
+  category,
+  subcategory,
+  initialProducts = [],
+}) {
   // Список товаров
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(initialProducts || []);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -65,20 +69,44 @@ export default function ClientList({ category, subcategory }) {
     setContent(null);
     setHeroImage("");
 
-    // 1) Товары
-    getAllProductsOneSubCategory(subcategory, category).then((arr) => {
-      const list = Array.isArray(arr) ? arr : [];
-      setProducts(list);
-      setFilteredProducts(list.slice(0, itemsPerPage));
-      setTotalItems(list.length);
-      setLoaded(true);
-    });
+    // ====== 1) Товары: сперва используем initialProducts, затем фолбэк на API ======
+    const listFromServer = Array.isArray(initialProducts)
+      ? initialProducts
+      : [];
 
-    // 2) H1/контент/картинка подкатегории — ИСПРАВЛЕНО: точный запрос по value+category
+    if (listFromServer.length > 0) {
+      // есть товары с сервера (SSR)
+      setProducts(listFromServer);
+      setFilteredProducts(listFromServer.slice(0, itemsPerPage));
+      setTotalItems(listFromServer.length);
+      setLoaded(true);
+    } else {
+      // фолбэк: забираем через существующий HTTP-метод
+      getAllProductsOneSubCategory(subcategory, category).then((arr) => {
+        // надёжно вынимаем массив: [], arr, arr.items или arr.products
+        let list = [];
+        if (Array.isArray(arr)) {
+          list = arr;
+        } else if (arr && Array.isArray(arr.items)) {
+          list = arr.items;
+        } else if (arr && Array.isArray(arr.products)) {
+          list = arr.products;
+        }
+
+        setProducts(list);
+        setFilteredProducts(list.slice(0, itemsPerPage));
+        setTotalItems(list.length);
+        setLoaded(true);
+      });
+    }
+
+    // ====== 2) H1/контент/картинка подкатегории — запрос по value+category (как было) ======
     (async () => {
       try {
         const r = await fetch(
-          `/api/admin/subcategories?value=${encodeURIComponent(subcategory)}&category=${encodeURIComponent(category)}`,
+          `/api/admin/subcategories?value=${encodeURIComponent(
+            subcategory
+          )}&category=${encodeURIComponent(category)}`,
           { cache: "no-store" }
         );
         const j = await r.json();
@@ -93,7 +121,7 @@ export default function ClientList({ category, subcategory }) {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subcategory, category]);
+  }, [subcategory, category, initialProducts]);
 
   // Применение фильтров/сортировки/пагинации
   useEffect(() => {
@@ -133,7 +161,8 @@ export default function ClientList({ category, subcategory }) {
     setTotalItems(list.length);
   };
 
-  const unoptHero = typeof heroImage === "string" && heroImage.startsWith("/uploads/");
+  const unoptHero =
+    typeof heroImage === "string" && heroImage.startsWith("/uploads/");
 
   return (
     <div className="container mx-auto pt-20 pb-20">
@@ -151,14 +180,18 @@ export default function ClientList({ category, subcategory }) {
           priority
           className="object-cover"
           sizes="100vw"
-          unoptimized={unoptHero}  // важно для прод при /uploads/...
+          unoptimized={unoptHero} // важно для прод при /uploads/...
         />
       </section>
 
       {/* H1 ПОД изображением */}
       <h1
         className="text-center tracking-tight sd:text-5xl xz:text-3xl mt-8 mb-10"
-         style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", WebkitBackgroundClip: "text", color: "transparent" }}
+        style={{
+          background: "linear-gradient(90deg,#27E9E2,#1C7EEC)",
+          WebkitBackgroundClip: "text",
+          color: "transparent",
+        }}
       >
         {h1}
       </h1>
@@ -194,7 +227,11 @@ export default function ClientList({ category, subcategory }) {
             <div className="pt-[1.7rem] pb-2 flex flex-col items-center">
               <div className="flex justify-between w-full space-x-2">
                 <div className="sd:hidden xz:block drawer z-40">
-                  <input id="my-drawer4" type="checkbox" className="drawer-toggle" />
+                  <input
+                    id="my-drawer4"
+                    type="checkbox"
+                    className="drawer-toggle"
+                  />
                   <div className="drawer-content">
                     <label
                       htmlFor="my-drawer4"
@@ -205,7 +242,11 @@ export default function ClientList({ category, subcategory }) {
                     </label>
                   </div>
                   <div className="drawer-side z-50">
-                    <label htmlFor="my-drawer4" aria-label="close sidebar" className="drawer-overlay"></label>
+                    <label
+                      htmlFor="my-drawer4"
+                      aria-label="close sidebar"
+                      className="drawer-overlay"
+                    ></label>
                     <div className="menu px-4 py-14 w-80 min-h-full bg-base-200 text-base-content">
                       <ProductFilterAside
                         hidden
