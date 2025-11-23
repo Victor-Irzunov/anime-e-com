@@ -17,6 +17,7 @@ import TopBarFixedMobile from "./TopBarFixedMobile";
 import MobileBottomBar from "./MobileBottomBar";
 import NavBarMobil from "./NavBarMobil"; // только для drawer категорий
 import ModalSearch from "../modal/ModalSearch";
+import phoneNumbers, { shopAddresses, siteCity, siteName } from "@/config/config";
 
 const Header = observer(() => {
   const { user, dataApp } = useContext(MyContext);
@@ -46,18 +47,35 @@ const Header = observer(() => {
         <div className="container mx-auto">
           <div className="navbar bg-base-100 py-0 layout-w">
             <div className="navbar-start">
-              <Link href={"/"} className="">
+              <Link href="/" className="flex items-center">
                 <Image
                   src="/logo/logo.webp"
                   alt="Логотип - магазины аниме в Минске"
                   width={100}
                   height={80}
+                  className="shrink-0"
                 />
               </Link>
+
+              {/* мелкий шрифт: адреса и телефон магазина рядом с логотипом */}
+              <div className="ml-4 flex flex-col text-[10px] leading-tight text-gray-600 max-w-md">
+                <span className="font-semibold text-gray-800">
+                  Магазин аниме фигурок «{siteName}» в {siteCity}е
+                </span>
+                {shopAddresses[0] && <span>{shopAddresses[0]}</span>}
+                {shopAddresses[1] && <span>{shopAddresses[1]}</span>}
+                {phoneNumbers.phone1 && (
+                  <a
+                    href={`tel:${phoneNumbers.phone1Link}`}
+                    className="mt-1 font-semibold text-primary"
+                  >
+                    {phoneNumbers.phone1}
+                  </a>
+                )}
+              </div>
             </div>
 
             <div className="navbar-center">
-              {/* десктопный поиск через модалку (оставляем твоё поведение) */}
               <div className="w-96">
                 <div
                   className="w-full border h-8 rounded-full text-center py-1 flex justify-center items-center cursor-pointer"

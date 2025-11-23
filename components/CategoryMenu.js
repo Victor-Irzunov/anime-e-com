@@ -31,7 +31,7 @@ function CategoryMenu() {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "";
 
   return (
-    <div className="border-b border-b-gray-300 bg-white sd:block xz:hidden pt-16">
+    <div className="border-b border-b-gray-300 bg-white sd:block xz:hidden pt-20">
       <div className="container mx-auto">
         <div className="layout-w px-2">
           <div className="py-3">

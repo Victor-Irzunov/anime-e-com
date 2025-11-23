@@ -7,6 +7,7 @@ import VoprosOtvet from "@/components/home/VoprosOtvet";
 import Image from "next/image";
 import Script from "next/script";
 import BtnComp from "@/components/btn/BtnComp"; // добавил
+import MagnitGallery from "@/components/home/MagnitGallery";
 
 // === SEO / AEO ===
 export const metadata = {
@@ -116,6 +117,9 @@ export default function Home() {
             </ul>
           </div>
 
+
+         
+
           {/* Правая колонка */}
           <div className="relative">
             <div className="sd:block xz:hidden">
@@ -144,7 +148,7 @@ export default function Home() {
         <CategoriesGrid />
       </section>
 
-     
+
 
       {/* ==== НОВАЯ СЕКЦИЯ: TELEGRAM ==== */}
       <section className="container mx-auto sd:py-14 xz:py-8 sd:px-0 xz:px-3">
@@ -289,6 +293,8 @@ export default function Home() {
           />
         </div>
       </section>
+
+       <MagnitGallery />
 
       {/* <VoprosOtvet /> */}
 

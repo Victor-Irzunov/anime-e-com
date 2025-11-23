@@ -140,7 +140,7 @@ export default function TopBarFixedMobile() {
                   Помощь и информация
                 </p>
                 <hr className="my-3 border-white/10" />
-                <ul className="space-y-2 text-[15px]">
+                <ul className="space-y-2 text-[12px]">
                   <li>
                     <Link
                       href="/dostavka-i-oplata"
@@ -149,15 +149,7 @@ export default function TopBarFixedMobile() {
                       Доставка и оплата
                     </Link>
                   </li>
-                  <li>
-                    <Link
-                      href="/vozvrat-i-garantii"
-                      className="hover:underline underline-offset-4"
-                    >
-                      Возврат и гарантии
-                    </Link>
-                  </li>
-
+                 
                   <li>
                     <Link
                       href="/novinki"
@@ -229,6 +221,8 @@ export default function TopBarFixedMobile() {
                 priority
               />
             </Link>
+
+          
 
             <div className="flex-1 relative">
               <input
