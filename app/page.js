@@ -3,10 +3,8 @@ import CategoriesGrid from "@/components/home/CategoriesGrid";
 import HeroCarousel from "@/components/home/HeroCarousel.client";
 import NewArrivals from "@/components/home/NewArrivals";
 import PopularProducts from "@/components/home/PopularProducts";
-import VoprosOtvet from "@/components/home/VoprosOtvet";
 import Image from "next/image";
 import Script from "next/script";
-import BtnComp from "@/components/btn/BtnComp"; // добавил
 import MagnitGallery from "@/components/home/MagnitGallery";
 
 // === SEO / AEO ===

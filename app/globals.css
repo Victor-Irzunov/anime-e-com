@@ -41,3 +41,12 @@
   background-clip: text;
   color: transparent; /* Делает видимым только градиент */
 }
+
+/* /app/globals.css */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE и Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
