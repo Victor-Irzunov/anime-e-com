@@ -8,7 +8,7 @@ import { AiTwotoneHome } from "react-icons/ai";
 function CategoryMenu() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [cats, setCats] = useState([]);
-  const [activeCatId, setActiveCatId] = useState(null); // активная категория для второй строки
+  const [hoveredId, setHoveredId] = useState(null); // для ховера подкатегорий (desktop)
 
   const handleDrawerClose = () => setIsDrawerOpen(false);
 
@@ -18,12 +18,7 @@ function CategoryMenu() {
       try {
         const r = await fetch("/api/public/navigation", { cache: "no-store" });
         const j = await r.json();
-        if (isMounted && j?.ok) {
-          setCats(j.items || []);
-          if (j.items?.length) {
-            setActiveCatId(j.items[0].id); // по умолчанию первая категория
-          }
-        }
+        if (isMounted && j?.ok) setCats(j.items || []);
       } catch (e) {
         console.error("load navigation error:", e);
       }
@@ -34,17 +29,13 @@ function CategoryMenu() {
   }, []);
 
   const base = process.env.NEXT_PUBLIC_BASE_URL || "";
-  const activeCat = cats.find((c) => c.id === activeCatId);
-  const activeSubs = Array.isArray(activeCat?.subcategories)
-    ? activeCat.subcategories
-    : [];
 
   return (
     <div className="border-b border-b-gray-300 bg-white sd:block xz:hidden pt-20">
       <div className="container mx-auto">
         <div className="layout-w px-2">
           <div className="py-3">
-            <div className="flex items-center gap-6 text-xs">
+            <div className="flex items-center gap-6 text-sm">
               {/* === БУРГЕР (моб. меню категорий) === */}
               <div className="drawer z-50 w-auto">
                 <input
@@ -57,7 +48,7 @@ function CategoryMenu() {
                 <div className="drawer-content">
                   <label
                     htmlFor="my-drawer2"
-                    className="hover:opacity-70 transition-opacity flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                    className="hover:opacity-70 transition-opacity flex items-center gap-2 cursor-pointer"
                   >
                     <RiMenu2Line fontSize={18} />
                     Все категории
@@ -119,55 +110,60 @@ function CategoryMenu() {
               </div>
 
               {/* === ССЫЛКА НА ГЛАВНУЮ === */}
-              <Link href={`${base}/`} className="text-xs whitespace-nowrap">
+              <Link href={`${base}/`} className="">
                 Главная
               </Link>
 
-              {/* === БЛОК КАТЕГОРИЙ + ПОДКАТЕГОРИИ ВО ВТОРОЙ СТРОКЕ === */}
-              <div className="flex-1 flex flex-col gap-1 min-w-0">
-                {/* Ряд категорий с горизонтальным скроллом */}
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                  {cats.map((cat) => {
-                    const isActive = cat.id === activeCatId;
-                    return (
-                      <Link
-                        key={cat.id}
-                        href={`${base}/${cat.value}`}
-                        onMouseEnter={() => setActiveCatId(cat.id)}
-                        onFocus={() => setActiveCatId(cat.id)}
-                        className={
-                          "btn btn-xs rounded-xl px-3 py-1 whitespace-nowrap transition-opacity " +
-                          (isActive ? "opacity-100" : "opacity-80 hover:opacity-100")
-                        }
-                        style={{
-                          background: "linear-gradient(90deg,#27E9E2,#1C7EEC)",
-                          color: "#001B2F",
-                        }}
-                      >
-                        {cat.name}
-                      </Link>
-                    );
-                  })}
-                </div>
+              {/* === ГОРИЗОНТАЛЬНОЕ МЕНЮ КАТЕГОРИЙ С ВЫПАДАЮЩИМИ ПОДКАТЕГОРИЯМИ (hover) === */}
+              <nav className="flex items-center gap-4 relative">
+                {cats.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="relative"
+                    onMouseEnter={() => setHoveredId(cat.id)}
+                    onMouseLeave={() => setHoveredId((prev) => (prev === cat.id ? null : prev))}
+                  >
+                    {/* ссылка категории */}
+                    <Link
+                      href={`${base}/${cat.value}`}
+                      className="hover:opacity-80 transition-opacity py-2 whitespace-nowrap btn btn-xs flex items-center rounded-xl"
+                      style={{ background: "linear-gradient(90deg,#27E9E2,#1C7EEC)", color: "#001B2F" }}
+                    >
+                      {cat.name}
+                    </Link>
 
-                {/* Ряд подкатегорий активной категории, тоже со скроллом */}
-                {activeSubs.length > 0 && (
-                  <div className="mt-1 overflow-x-auto no-scrollbar">
-                    <div className="flex items-center gap-2 text-[11px]">
-                      {activeSubs.map((sub) => (
-                        <Link
-                          key={sub.id}
-                          href={`${base}/${activeCat.value}/${sub.value}`}
-                          className="px-3 py-1 rounded-full border border-gray-200 hover:bg-base-200 whitespace-nowrap"
+                    {/* выпадающий список подкатегорий */}
+                    {Array.isArray(cat.subcategories) &&
+                      cat.subcategories.length > 0 && hoveredId === cat.id && (
+                        <div
+                          className="absolute left-0 top-4 z-50 bg-white border border-gray-200 rounded-lg shadow mt-2 min-w-[16rem] p-2"
                         >
-                          {sub.name}
-                        </Link>
-                      ))}
-                    </div>
+                          <ul className="menu menu-sm">
+                            {cat.subcategories.map((sub) => (
+                              <li key={sub.id}>
+                                <Link
+                                  href={`${base}/${cat.value}/${sub.value}`}
+                                  className="py-2 px-3 hover:bg-base-200 rounded-md"
+                                  onClick={() => {
+                                    // Закрыть выпадающее меню сразу по клику
+                                    setHoveredId(null);
+                                    // Снять фокус с активного элемента (JS без TS-кастов)
+                                    const active = document.activeElement;
+                                    if (active && typeof active.blur === "function") {
+                                      active.blur();
+                                    }
+                                  }}
+                                >
+                                  {sub.name}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                   </div>
-                )}
-              </div>
-              {/* === /БЛОК КАТЕГОРИЙ === */}
+                ))}
+              </nav>
             </div>
           </div>
         </div>
