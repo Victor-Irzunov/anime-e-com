@@ -48,7 +48,7 @@ function CategoryMenu() {
                 <div className="drawer-content">
                   <label
                     htmlFor="my-drawer2"
-                    className="hover:opacity-70 transition-opacity flex items-center gap-2 cursor-pointer"
+                    className="hover:opacity-70 transition-opacity flex items-center gap-2 cursor-pointer text-xs"
                   >
                     <RiMenu2Line fontSize={18} />
                     Все категории
@@ -110,7 +110,7 @@ function CategoryMenu() {
               </div>
 
               {/* === ССЫЛКА НА ГЛАВНУЮ === */}
-              <Link href={`${base}/`} className="">
+              <Link href={`${base}/`} className="text-xs">
                 Главная
               </Link>
 
