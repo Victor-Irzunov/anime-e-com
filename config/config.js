@@ -12,9 +12,9 @@ export const shopAddresses = [
 
 // Телефоны
 const phoneNumbers = {
-  phone1: "+375 29 000-00-00",
-  phone1Link: "+375290000000",
-  phone1Social: "375290000000", // для WhatsApp/Viber (без +)
+  phone1: "+375 33 331-21-78",
+  phone1Link: "+375333312178",
+  phone1Social: "375333312178",
   phone2: "",
   phone2Link: "",
   phone3: "",
