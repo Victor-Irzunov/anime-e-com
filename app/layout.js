@@ -43,7 +43,7 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="theme-color" content="#cdcecf" />
         <link rel="shortcut icon" href="/favicon/favicon.ico" />
-
+        <meta name="google-site-verification" content="NA5fDUe6BBdpZ1eByRvbBJQlYZ0OTLd83cbdkXDZNwc" />
       </head>
       <MyContextProvider>
         <body className="bg-[#f0f9ff]">
