@@ -90,7 +90,7 @@ export default function ClientList({ category, title = "" }) {
   };
 
   return (
-    <div className="container mx-auto pt-20 pb-20">
+    <div className="container mx-auto sd:pt-16 xz:pt-6 pb-20">
       {products ? (
         <div className="px-2 py-4 flex relative">
           <div className=''>
